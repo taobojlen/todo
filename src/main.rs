@@ -25,6 +25,10 @@ use tui::{app::App, ui};
 #[command(name = "todo")]
 #[command(about = "A TUI for managing markdown-based TODO lists")]
 struct Cli {
+    /// Path to TODO.md file to open directly
+    #[arg(value_hint = ValueHint::FilePath)]
+    file: Option<String>,
+    
     #[command(subcommand)]
     command: Option<Commands>,
 }
@@ -76,7 +80,7 @@ fn main() {
             print_completions(shell, &mut cmd);
         }
         None => {
-            if let Err(e) = run_main_app() {
+            if let Err(e) = run_main_app(cli.file) {
                 eprintln!("Error: {}", e);
                 std::process::exit(1);
             }
@@ -121,11 +125,16 @@ fn handle_config_command(action: ConfigAction) -> Result<(), ConfigError> {
     Ok(())
 }
 
-fn run_main_app() -> Result<()> {
-    let config = Config::load()
-        .map_err(|e| anyhow::anyhow!("Configuration error: {}", e))?;
+fn run_main_app(file_path: Option<String>) -> Result<()> {
+    let todo_file_path = if let Some(path) = file_path {
+        path
+    } else {
+        let config = Config::load()
+            .map_err(|e| anyhow::anyhow!("Configuration error: {}", e))?;
+        config.file_path
+    };
     
-    let todo_list = parse_todo_file(&config.file_path)?;
+    let todo_list = parse_todo_file(&todo_file_path)?;
     let mut app = App::new(todo_list);
     
     run_tui(&mut app)?;

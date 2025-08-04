@@ -205,6 +205,9 @@ impl KeyEventHandler for App {
                 EditModeAction::MoveCursorRight => self.edit_state.move_cursor_right(),
                 EditModeAction::MoveCursorHome => self.edit_state.move_cursor_home(),
                 EditModeAction::MoveCursorEnd => self.edit_state.move_cursor_end(),
+                EditModeAction::DeleteWordBackward => self.edit_state.delete_word_backward(),
+                EditModeAction::MoveToPreviousWord => self.edit_state.move_to_previous_word(),
+                EditModeAction::MoveToNextWord => self.edit_state.move_to_next_word(),
                 EditModeAction::InsertChar(c) => self.edit_state.insert_char(c),
                 EditModeAction::None => {}
             }

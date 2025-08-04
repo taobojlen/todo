@@ -108,6 +108,154 @@ impl EditState {
     pub fn move_cursor_end(&mut self) {
         self.edit_cursor_position = self.edit_buffer.len();
     }
+
+    pub fn delete_word_backward(&mut self) {
+        if self.edit_cursor_position == 0 {
+            return;
+        }
+
+        let chars: Vec<char> = self.edit_buffer.chars().collect();
+        let mut byte_pos = 0;
+        let mut char_index = 0;
+        
+        // Find which character we're at
+        for (i, ch) in chars.iter().enumerate() {
+            if byte_pos >= self.edit_cursor_position {
+                char_index = i;
+                break;
+            }
+            byte_pos += ch.len_utf8();
+            char_index = i + 1;
+        }
+
+        // Find the start of the word to delete
+        let mut word_start = char_index;
+        let mut in_word = false;
+        
+        // Move backward from current position
+        for i in (0..char_index).rev() {
+            let ch = chars[i];
+            if ch.is_whitespace() {
+                if in_word {
+                    // Found whitespace after word chars, stop here
+                    word_start = i + 1;
+                    break;
+                }
+                // Still in whitespace, continue
+            } else {
+                // Found a word character
+                in_word = true;
+                word_start = i;
+            }
+        }
+
+        // Calculate byte positions for deletion
+        let mut delete_start_byte = 0;
+        for i in 0..word_start {
+            delete_start_byte += chars[i].len_utf8();
+        }
+
+        // Delete the range
+        let delete_len = self.edit_cursor_position - delete_start_byte;
+        if delete_len > 0 {
+            for _ in 0..delete_len {
+                if delete_start_byte < self.edit_buffer.len() {
+                    self.edit_buffer.remove(delete_start_byte);
+                }
+            }
+            self.edit_cursor_position = delete_start_byte;
+        }
+    }
+
+    pub fn move_to_previous_word(&mut self) {
+        if self.edit_cursor_position == 0 {
+            return;
+        }
+
+        let chars: Vec<char> = self.edit_buffer.chars().collect();
+        let mut byte_pos = 0;
+        let mut char_index = 0;
+        
+        // Find which character we're at
+        for (i, ch) in chars.iter().enumerate() {
+            if byte_pos >= self.edit_cursor_position {
+                char_index = i;
+                break;
+            }
+            byte_pos += ch.len_utf8();
+            char_index = i + 1;
+        }
+
+        // Find the start of the previous word
+        let mut target_pos = 0;
+        let mut found_word = false;
+        
+        // Move backward from current position
+        for i in (0..char_index).rev() {
+            let ch = chars[i];
+            if ch.is_whitespace() {
+                if found_word {
+                    // Found whitespace after word chars, stop at next position
+                    target_pos = i + 1;
+                    break;
+                }
+                // Still in whitespace, continue
+            } else {
+                // Found a word character
+                found_word = true;
+                target_pos = i;
+            }
+        }
+
+        // Calculate byte position for target
+        let mut target_byte_pos = 0;
+        for i in 0..target_pos {
+            target_byte_pos += chars[i].len_utf8();
+        }
+        
+        self.edit_cursor_position = target_byte_pos;
+    }
+
+    pub fn move_to_next_word(&mut self) {
+        if self.edit_cursor_position >= self.edit_buffer.len() {
+            return;
+        }
+
+        let chars: Vec<char> = self.edit_buffer.chars().collect();
+        let mut byte_pos = 0;
+        let mut char_index = 0;
+        
+        // Find which character we're at
+        for (i, ch) in chars.iter().enumerate() {
+            if byte_pos >= self.edit_cursor_position {
+                char_index = i;
+                break;
+            }
+            byte_pos += ch.len_utf8();
+            char_index = i + 1;
+        }
+
+        // First skip any non-whitespace characters (current word)
+        let mut i = char_index;
+        while i < chars.len() && !chars[i].is_whitespace() {
+            i += 1;
+        }
+        
+        // Then skip any whitespace
+        while i < chars.len() && chars[i].is_whitespace() {
+            i += 1;
+        }
+
+        // Calculate byte position for target
+        let mut target_byte_pos = 0;
+        for j in 0..i {
+            if j < chars.len() {
+                target_byte_pos += chars[j].len_utf8();
+            }
+        }
+        
+        self.edit_cursor_position = target_byte_pos;
+    }
 }
 
 pub trait Editable {
@@ -203,5 +351,108 @@ mod tests {
         // Test end
         edit_state.move_cursor_end();
         assert_eq!(edit_state.edit_cursor_position, 5);
+    }
+
+    #[test]
+    fn test_delete_word_backward() {
+        let mut edit_state = EditState::new();
+        
+        // Test deleting a word at the end of text
+        edit_state.enter_edit_mode("Hello world".to_string());
+        edit_state.delete_word_backward();
+        assert_eq!(edit_state.edit_buffer, "Hello ");
+        assert_eq!(edit_state.edit_cursor_position, 6);
+        
+        // Test deleting another word
+        edit_state.delete_word_backward();
+        assert_eq!(edit_state.edit_buffer, "");
+        assert_eq!(edit_state.edit_cursor_position, 0);
+        
+        // Test with cursor in middle of text
+        edit_state.enter_edit_mode("foo bar baz".to_string());
+        edit_state.edit_cursor_position = 7; // Between "bar" and " baz"
+        edit_state.delete_word_backward();
+        assert_eq!(edit_state.edit_buffer, "foo  baz");
+        assert_eq!(edit_state.edit_cursor_position, 4);
+        
+        // Test with multiple spaces
+        edit_state.enter_edit_mode("word   test".to_string());
+        edit_state.delete_word_backward();
+        assert_eq!(edit_state.edit_buffer, "word   ");
+        assert_eq!(edit_state.edit_cursor_position, 7);
+        
+        // Test at beginning of buffer
+        edit_state.enter_edit_mode("test".to_string());
+        edit_state.edit_cursor_position = 0;
+        edit_state.delete_word_backward();
+        assert_eq!(edit_state.edit_buffer, "test");
+        assert_eq!(edit_state.edit_cursor_position, 0);
+    }
+
+    #[test]
+    fn test_move_to_previous_word() {
+        let mut edit_state = EditState::new();
+        
+        // Test moving to previous word from end
+        edit_state.enter_edit_mode("hello world test".to_string());
+        edit_state.move_to_previous_word();
+        assert_eq!(edit_state.edit_cursor_position, 12); // Start of "test"
+        
+        // Test moving to another previous word
+        edit_state.move_to_previous_word();
+        assert_eq!(edit_state.edit_cursor_position, 6); // Start of "world"
+        
+        // Test moving to the first word
+        edit_state.move_to_previous_word();
+        assert_eq!(edit_state.edit_cursor_position, 0); // Start of "hello"
+        
+        // Test at beginning - should stay at beginning
+        edit_state.move_to_previous_word();
+        assert_eq!(edit_state.edit_cursor_position, 0);
+        
+        // Test with cursor in middle of a word
+        edit_state.enter_edit_mode("foo bar baz".to_string());
+        edit_state.edit_cursor_position = 6; // Middle of "bar"
+        edit_state.move_to_previous_word();
+        assert_eq!(edit_state.edit_cursor_position, 4); // Start of "bar"
+        
+        // Test with multiple spaces
+        edit_state.enter_edit_mode("word   test".to_string());
+        edit_state.move_to_previous_word();
+        assert_eq!(edit_state.edit_cursor_position, 7); // Start of "test"
+    }
+
+    #[test]
+    fn test_move_to_next_word() {
+        let mut edit_state = EditState::new();
+        
+        // Test moving to next word from beginning
+        edit_state.enter_edit_mode("hello world test".to_string());
+        edit_state.edit_cursor_position = 0; // Start of "hello"
+        edit_state.move_to_next_word();
+        assert_eq!(edit_state.edit_cursor_position, 6); // Start of "world"
+        
+        // Test moving to another next word
+        edit_state.move_to_next_word();
+        assert_eq!(edit_state.edit_cursor_position, 12); // Start of "test"
+        
+        // Test at end - should stay at end
+        edit_state.move_to_next_word();
+        assert_eq!(edit_state.edit_cursor_position, 16); // End of buffer
+        
+        edit_state.move_to_next_word();
+        assert_eq!(edit_state.edit_cursor_position, 16); // Still at end
+        
+        // Test with cursor in middle of a word
+        edit_state.enter_edit_mode("foo bar baz".to_string());
+        edit_state.edit_cursor_position = 1; // Middle of "foo"
+        edit_state.move_to_next_word();
+        assert_eq!(edit_state.edit_cursor_position, 4); // Start of "bar"
+        
+        // Test with multiple spaces
+        edit_state.enter_edit_mode("word   test".to_string());
+        edit_state.edit_cursor_position = 0;
+        edit_state.move_to_next_word();
+        assert_eq!(edit_state.edit_cursor_position, 7); // Start of "test"
     }
 }

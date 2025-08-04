@@ -80,10 +80,39 @@ impl KeyHandler {
             KeyCode::Enter => EditModeAction::ConfirmEdit,
             KeyCode::Backspace => EditModeAction::Backspace,
             KeyCode::Delete => EditModeAction::Delete,
+            KeyCode::Left if key_event.modifiers.contains(KeyModifiers::ALT) => {
+                EditModeAction::MoveToPreviousWord
+            }
+            KeyCode::Right if key_event.modifiers.contains(KeyModifiers::ALT) => {
+                EditModeAction::MoveToNextWord
+            }
             KeyCode::Left => EditModeAction::MoveCursorLeft,
             KeyCode::Right => EditModeAction::MoveCursorRight,
             KeyCode::Home => EditModeAction::MoveCursorHome,
             KeyCode::End => EditModeAction::MoveCursorEnd,
+            KeyCode::Char('w') if key_event.modifiers.contains(KeyModifiers::CONTROL) => {
+                EditModeAction::DeleteWordBackward
+            }
+            KeyCode::Char('a') if key_event.modifiers.contains(KeyModifiers::CONTROL) => {
+                EditModeAction::MoveCursorHome
+            }
+            KeyCode::Char('e') if key_event.modifiers.contains(KeyModifiers::CONTROL) => {
+                EditModeAction::MoveCursorEnd
+            }
+            KeyCode::Char('b') if key_event.modifiers.contains(KeyModifiers::CONTROL) => {
+                EditModeAction::MoveToPreviousWord
+            }
+            KeyCode::Char('f') if key_event.modifiers.contains(KeyModifiers::CONTROL) => {
+                EditModeAction::MoveToNextWord
+            }
+            KeyCode::Char('b') if key_event.modifiers.contains(KeyModifiers::ALT) => {
+                EditModeAction::MoveToPreviousWord
+            }
+            KeyCode::Char('f') if key_event.modifiers.contains(KeyModifiers::ALT) => {
+                EditModeAction::MoveToNextWord
+            }
+            KeyCode::Char('\x02') => EditModeAction::MoveToPreviousWord, // Ctrl+B (ASCII 2)
+            KeyCode::Char('\x06') => EditModeAction::MoveToNextWord,     // Ctrl+F (ASCII 6)
             KeyCode::Char(c) => EditModeAction::InsertChar(c),
             _ => EditModeAction::None,
         }
@@ -141,6 +170,9 @@ pub enum EditModeAction {
     MoveCursorRight,
     MoveCursorHome,
     MoveCursorEnd,
+    DeleteWordBackward,
+    MoveToPreviousWord,
+    MoveToNextWord,
     InsertChar(char),
 }
 
@@ -269,5 +301,64 @@ mod tests {
     fn test_normal_mode_delete_key() {
         let key_event = KeyEvent::from(KeyCode::Char('d'));
         assert_eq!(KeyHandler::handle_normal_mode_key(key_event), NormalModeAction::DeleteItem);
+    }
+
+    #[test]
+    fn test_edit_mode_ctrl_keys() {
+        // Test Ctrl-W (delete word backward)
+        let mut key_event = KeyEvent::from(KeyCode::Char('w'));
+        key_event.modifiers = KeyModifiers::CONTROL;
+        assert_eq!(KeyHandler::handle_edit_mode_key(key_event), EditModeAction::DeleteWordBackward);
+
+        // Test Ctrl-A (move to beginning)
+        let mut key_event = KeyEvent::from(KeyCode::Char('a'));
+        key_event.modifiers = KeyModifiers::CONTROL;
+        assert_eq!(KeyHandler::handle_edit_mode_key(key_event), EditModeAction::MoveCursorHome);
+
+        // Test Ctrl-E (move to end)
+        let mut key_event = KeyEvent::from(KeyCode::Char('e'));
+        key_event.modifiers = KeyModifiers::CONTROL;
+        assert_eq!(KeyHandler::handle_edit_mode_key(key_event), EditModeAction::MoveCursorEnd);
+
+        // Test Ctrl-B (move to previous word)
+        let mut key_event = KeyEvent::from(KeyCode::Char('b'));
+        key_event.modifiers = KeyModifiers::CONTROL;
+        assert_eq!(KeyHandler::handle_edit_mode_key(key_event), EditModeAction::MoveToPreviousWord);
+
+        // Test Ctrl-F (move to next word)
+        let mut key_event = KeyEvent::from(KeyCode::Char('f'));
+        key_event.modifiers = KeyModifiers::CONTROL;
+        assert_eq!(KeyHandler::handle_edit_mode_key(key_event), EditModeAction::MoveToNextWord);
+
+        // Test raw Ctrl+B (ASCII 2)
+        let key_event = KeyEvent::from(KeyCode::Char('\x02'));
+        assert_eq!(KeyHandler::handle_edit_mode_key(key_event), EditModeAction::MoveToPreviousWord);
+
+        // Test raw Ctrl+F (ASCII 6)
+        let key_event = KeyEvent::from(KeyCode::Char('\x06'));
+        assert_eq!(KeyHandler::handle_edit_mode_key(key_event), EditModeAction::MoveToNextWord);
+
+        // Test Alt-B (move to previous word)
+        let mut key_event = KeyEvent::from(KeyCode::Char('b'));
+        key_event.modifiers = KeyModifiers::ALT;
+        assert_eq!(KeyHandler::handle_edit_mode_key(key_event), EditModeAction::MoveToPreviousWord);
+
+        // Test Alt-F (move to next word)
+        let mut key_event = KeyEvent::from(KeyCode::Char('f'));
+        key_event.modifiers = KeyModifiers::ALT;
+        assert_eq!(KeyHandler::handle_edit_mode_key(key_event), EditModeAction::MoveToNextWord);
+    }
+
+    #[test]
+    fn test_edit_mode_alt_keys() {
+        // Test Alt+Left (move to previous word)
+        let mut key_event = KeyEvent::from(KeyCode::Left);
+        key_event.modifiers = KeyModifiers::ALT;
+        assert_eq!(KeyHandler::handle_edit_mode_key(key_event), EditModeAction::MoveToPreviousWord);
+
+        // Test Alt+Right (move to next word)
+        let mut key_event = KeyEvent::from(KeyCode::Right);
+        key_event.modifiers = KeyModifiers::ALT;
+        assert_eq!(KeyHandler::handle_edit_mode_key(key_event), EditModeAction::MoveToNextWord);
     }
 }
