@@ -9,7 +9,7 @@ pub fn write_todo_file(todo_list: &TodoList) -> Result<()> {
     Ok(())
 }
 
-fn serialize_todo_list(todo_list: &TodoList) -> String {
+pub fn serialize_todo_list(todo_list: &TodoList) -> String {
     let mut lines = Vec::new();
     
     for item in &todo_list.items {
@@ -18,6 +18,10 @@ fn serialize_todo_list(todo_list: &TodoList) -> String {
                 let indent = "  ".repeat(*indent_level);
                 let checkbox = if *completed { "- [x]" } else { "- [ ]" };
                 lines.push(format!("{}{} {}", indent, checkbox, content));
+            }
+            ListItem::Note { content, indent_level, .. } => {
+                let indent = "  ".repeat(*indent_level);
+                lines.push(format!("{}- {}", indent, content));
             }
             ListItem::Heading { content, level, .. } => {
                 let prefix = "#".repeat(*level);
@@ -87,15 +91,35 @@ mod tests {
     }
 
     #[test]
+    fn test_serialize_note() {
+        let mut todo_list = TodoList::new("test.md".to_string());
+        todo_list.add_item(ListItem::new_note("This is a note".to_string(), 0, 0));
+        
+        let result = serialize_todo_list(&todo_list);
+        assert_eq!(result, "- This is a note\n");
+    }
+
+    #[test]
+    fn test_serialize_indented_note() {
+        let mut todo_list = TodoList::new("test.md".to_string());
+        todo_list.add_item(ListItem::new_note("Indented note".to_string(), 1, 0));
+        
+        let result = serialize_todo_list(&todo_list);
+        assert_eq!(result, "  - Indented note\n");
+    }
+
+    #[test]
     fn test_serialize_mixed_content() {
         let mut todo_list = TodoList::new("test.md".to_string());
         todo_list.add_item(ListItem::new_heading("Project".to_string(), 1, 0));
         todo_list.add_item(ListItem::new_todo("Task 1".to_string(), false, 0, 1));
-        todo_list.add_item(ListItem::new_todo("Task 2".to_string(), true, 0, 2));
-        todo_list.add_item(ListItem::new_todo("Subtask".to_string(), false, 1, 3));
+        todo_list.add_item(ListItem::new_note("Project notes".to_string(), 0, 2));
+        todo_list.add_item(ListItem::new_todo("Task 2".to_string(), true, 0, 3));
+        todo_list.add_item(ListItem::new_todo("Subtask".to_string(), false, 1, 4));
+        todo_list.add_item(ListItem::new_note("Nested note".to_string(), 1, 5));
         
         let result = serialize_todo_list(&todo_list);
-        let expected = "# Project\n- [ ] Task 1\n- [x] Task 2\n  - [ ] Subtask\n";
+        let expected = "# Project\n- [ ] Task 1\n- Project notes\n- [x] Task 2\n  - [ ] Subtask\n  - Nested note\n";
         assert_eq!(result, expected);
     }
 

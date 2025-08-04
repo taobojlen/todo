@@ -50,6 +50,11 @@ fn parse_line(line: &str, line_number: usize) -> Option<ListItem> {
         return Some(ListItem::new_todo(content, completed, indent_level, line_number));
     }
 
+    // Check for bullet points without checkboxes: - content
+    if let Some(content) = extract_bullet_content(trimmed_start) {
+        return Some(ListItem::new_note(content, indent_level, line_number));
+    }
+
     None
 }
 
@@ -120,6 +125,22 @@ fn extract_checkbox_content(line: &str) -> Option<String> {
                     return Some(content.to_string());
                 }
             }
+        }
+    }
+    None
+}
+
+fn extract_bullet_content(line: &str) -> Option<String> {
+    // Match patterns like "- content" but NOT "- [ ]" or "- [x]"
+    if line.starts_with("- ") && line.len() > 2 {
+        // Make sure it's not a checkbox pattern
+        if line.len() > 4 && line.chars().nth(2) == Some('[') {
+            return None; // This is a checkbox, not a bullet note
+        }
+        
+        let content = line[2..].trim(); // Skip "- " and trim whitespace
+        if !content.is_empty() {
+            return Some(content.to_string());
         }
     }
     None
@@ -212,6 +233,34 @@ mod tests {
     }
 
     #[test]
+    fn test_parse_bullet_note() {
+        let item = parse_line("- This is a bullet note", 0);
+        assert!(item.is_some());
+        let item = item.unwrap();
+        match item {
+            ListItem::Note { content, indent_level, .. } => {
+                assert_eq!(content, "This is a bullet note");
+                assert_eq!(indent_level, 0);
+            }
+            _ => panic!("Expected Note item"),
+        }
+    }
+
+    #[test]
+    fn test_parse_indented_bullet_note() {
+        let item = parse_line("  - This is an indented note", 0);
+        assert!(item.is_some());
+        let item = item.unwrap();
+        match item {
+            ListItem::Note { content, indent_level, .. } => {
+                assert_eq!(content, "This is an indented note");
+                assert_eq!(indent_level, 1);
+            }
+            _ => panic!("Expected Note item"),
+        }
+    }
+
+    #[test]
     fn test_parse_non_checkbox_line() {
         let item = parse_line("This is just a note", 0);
         assert!(item.is_none());
@@ -260,5 +309,48 @@ mod tests {
         assert_eq!(calculate_indent_level("    - [ ] Four spaces"), 2);
         assert_eq!(calculate_indent_level("\t- [ ] One tab"), 1);
         assert_eq!(calculate_indent_level("\t\t- [ ] Two tabs"), 2);
+    }
+
+    #[test]
+    fn test_roundtrip_with_notes() {
+        use crate::todo::writer;
+        use std::fs;
+        
+        // Create test content with notes
+        let original_content = "# Test Project\n\n- [ ] First task\n- This is a note\n  - Nested note\n- [x] Completed task\n  - [ ] Subtask\n  - Another note under task\n";
+        
+        // Create temporary file
+        let temp_file = "/tmp/test_notes_roundtrip.md";
+        fs::write(temp_file, original_content).unwrap();
+        
+        // Parse the file
+        let todo_list = parse_todo_file(temp_file).unwrap();
+        
+        // Verify we parsed the correct number of items
+        assert_eq!(todo_list.items.len(), 7); // 1 heading + 6 items
+        
+        // Verify the types are correct
+        assert!(matches!(todo_list.items[0], ListItem::Heading { .. }));
+        assert!(matches!(todo_list.items[1], ListItem::Todo { .. }));
+        assert!(matches!(todo_list.items[2], ListItem::Note { .. }));
+        assert!(matches!(todo_list.items[3], ListItem::Note { .. })); // nested note
+        assert!(matches!(todo_list.items[4], ListItem::Todo { .. }));
+        assert!(matches!(todo_list.items[5], ListItem::Todo { .. })); // subtask
+        assert!(matches!(todo_list.items[6], ListItem::Note { .. })); // note under task
+        
+        // Serialize it back
+        let serialized = writer::serialize_todo_list(&todo_list);
+        
+        // The output should contain all the essential information
+        assert!(serialized.contains("# Test Project"));
+        assert!(serialized.contains("- [ ] First task"));
+        assert!(serialized.contains("- This is a note"));
+        assert!(serialized.contains("  - Nested note"));
+        assert!(serialized.contains("- [x] Completed task"));
+        assert!(serialized.contains("  - [ ] Subtask"));
+        assert!(serialized.contains("  - Another note under task"));
+        
+        // Clean up
+        fs::remove_file(temp_file).ok();
     }
 }

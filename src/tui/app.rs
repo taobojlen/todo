@@ -102,6 +102,12 @@ impl App {
             KeyCode::Char('A') => {
                 self.add_new_todo_at_top();
             }
+            KeyCode::Char('n') => {
+                self.add_new_note();
+            }
+            KeyCode::Char('N') => {
+                self.add_new_note_at_top();
+            }
             KeyCode::Char(' ') => {
                 self.toggle_item_selection();
             }
@@ -246,6 +252,7 @@ impl App {
             let max_indent = if block_start > 0 {
                 match &self.todo_list.items[block_start - 1] {
                     ListItem::Todo { indent_level: prev_indent, .. } => prev_indent + 1,
+                    ListItem::Note { indent_level: prev_indent, .. } => prev_indent + 1,
                     ListItem::Heading { .. } => 1, // Can indent under headings
                 }
             } else {
@@ -260,6 +267,9 @@ impl App {
                         if let Some(item) = self.todo_list.items.get_mut(i) {
                             match item {
                                 ListItem::Todo { indent_level, .. } => {
+                                    *indent_level += 1;
+                                }
+                                ListItem::Note { indent_level, .. } => {
                                     *indent_level += 1;
                                 }
                                 ListItem::Heading { .. } => {
@@ -285,13 +295,23 @@ impl App {
             let (block_start, block_end) = self.get_block_range(self.selected_index);
             
             // Check if the parent item can be unindented
-            if let Some(ListItem::Todo { indent_level: parent_indent, .. }) = self.todo_list.items.get(block_start) {
-                if *parent_indent > 0 {
+            if let Some(item) = self.todo_list.items.get(block_start) {
+                let parent_indent = match item {
+                    ListItem::Todo { indent_level, .. } => *indent_level,
+                    ListItem::Note { indent_level, .. } => *indent_level,
+                    ListItem::Heading { .. } => return, // Can't unindent headings
+                };
+                if parent_indent > 0 {
                     // Unindent the entire block
                     for i in block_start..=block_end {
                         if let Some(item) = self.todo_list.items.get_mut(i) {
                             match item {
                                 ListItem::Todo { indent_level, .. } => {
+                                    if *indent_level > 0 {
+                                        *indent_level -= 1;
+                                    }
+                                }
+                                ListItem::Note { indent_level, .. } => {
                                     if *indent_level > 0 {
                                         *indent_level -= 1;
                                     }
@@ -320,6 +340,7 @@ impl App {
         let start_item = &self.todo_list.items[start_index];
         let base_indent = match start_item {
             ListItem::Todo { indent_level, .. } => *indent_level,
+            ListItem::Note { indent_level, .. } => *indent_level,
             ListItem::Heading { .. } => 0,
         };
 
@@ -329,6 +350,15 @@ impl App {
         for (i, item) in self.todo_list.items.iter().enumerate().skip(start_index + 1) {
             match item {
                 ListItem::Todo { indent_level, .. } => {
+                    if *indent_level > base_indent {
+                        // This item is nested under the current item
+                        end_index = i;
+                    } else {
+                        // We've reached a sibling or parent, stop here
+                        break;
+                    }
+                }
+                ListItem::Note { indent_level, .. } => {
                     if *indent_level > base_indent {
                         // This item is nested under the current item
                         end_index = i;
@@ -462,6 +492,7 @@ impl App {
             if let Some(item) = self.todo_list.items.get(self.selected_index) {
                 let content = match item {
                     ListItem::Todo { content, .. } => content.clone(),
+                    ListItem::Note { content, .. } => content.clone(),
                     ListItem::Heading { content, .. } => content.clone(),
                 };
                 self.edit_buffer = content;
@@ -507,6 +538,11 @@ impl App {
                     ListItem::Todo { content, .. } => {
                         *content = self.edit_buffer.clone();
                         // Remove todo if it's empty after editing
+                        self.edit_buffer.trim().is_empty()
+                    }
+                    ListItem::Note { content, .. } => {
+                        *content = self.edit_buffer.clone();
+                        // Remove note if it's empty after editing
                         self.edit_buffer.trim().is_empty()
                     }
                     ListItem::Heading { content, .. } => {
@@ -624,7 +660,8 @@ impl App {
             let current_item = &self.todo_list.items[self.selected_index];
             
             match current_item {
-                ListItem::Todo { indent_level: current_indent, .. } => {
+                ListItem::Todo { indent_level: current_indent, .. } |
+                ListItem::Note { indent_level: current_indent, .. } => {
                     // Check if this todo has children
                     let (_, block_end) = self.get_block_range(self.selected_index);
                     
@@ -672,6 +709,66 @@ impl App {
         self.todo_list.items.insert(insert_position, new_todo);
         
         // Move selection to the new todo and enter edit mode
+        self.selected_index = insert_position;
+        self.enter_edit_mode();
+    }
+
+    fn add_new_note(&mut self) {
+        self.save_state();
+        self.adding_new_todo = true; // Reuse the existing flag for consistency
+        if self.todo_list.items.is_empty() {
+            // If there are no items, add the first one at level 0
+            let new_note = ListItem::new_note(String::new(), 0, 0);
+            self.todo_list.add_item(new_note);
+            self.selected_index = 0;
+            self.enter_edit_mode();
+        } else if self.selected_index < self.todo_list.items.len() {
+            let current_item = &self.todo_list.items[self.selected_index];
+            
+            match current_item {
+                ListItem::Todo { indent_level: current_indent, .. } |
+                ListItem::Note { indent_level: current_indent, .. } => {
+                    // Check if this item has children
+                    let (_, block_end) = self.get_block_range(self.selected_index);
+                    
+                    if block_end > self.selected_index {
+                        // This item has children, add new note after the last child
+                        let child_indent = current_indent + 1;
+                        let new_note = ListItem::new_note(String::new(), child_indent, 0);
+                        self.todo_list.items.insert(block_end + 1, new_note);
+                        self.selected_index = block_end + 1;
+                    } else {
+                        // No children, add sibling at the same level
+                        let new_note = ListItem::new_note(String::new(), *current_indent, 0);
+                        self.todo_list.items.insert(self.selected_index + 1, new_note);
+                        self.selected_index += 1;
+                    }
+                    self.enter_edit_mode();
+                }
+                ListItem::Heading { .. } => {
+                    // For headings, add note right after heading at level 0
+                    let new_note = ListItem::new_note(String::new(), 0, 0);
+                    self.todo_list.items.insert(self.selected_index + 1, new_note);
+                    self.selected_index += 1;
+                    self.enter_edit_mode();
+                }
+            }
+        }
+    }
+
+    fn add_new_note_at_top(&mut self) {
+        self.save_state();
+        self.adding_new_todo = true; // Reuse the existing flag for consistency
+        // Create new note at level 0 (top level)
+        let new_note = ListItem::new_note(String::new(), 0, 0);
+        
+        // Find the current heading context
+        let insert_position = self.find_current_heading_context();
+        
+        // Insert the new note
+        self.todo_list.items.insert(insert_position, new_note);
+        
+        // Move selection to the new note and enter edit mode
         self.selected_index = insert_position;
         self.enter_edit_mode();
     }

@@ -6,6 +6,11 @@ pub enum ListItem {
         indent_level: usize,
         line_number: usize,
     },
+    Note {
+        content: String,
+        indent_level: usize,
+        line_number: usize,
+    },
     Heading {
         content: String,
         level: usize, // 1 for #, 2 for ##, etc.
@@ -23,6 +28,14 @@ impl ListItem {
         }
     }
 
+    pub fn new_note(content: String, indent_level: usize, line_number: usize) -> Self {
+        Self::Note {
+            content,
+            indent_level,
+            line_number,
+        }
+    }
+
     pub fn new_heading(content: String, level: usize, line_number: usize) -> Self {
         Self::Heading {
             content,
@@ -34,6 +47,7 @@ impl ListItem {
     pub fn is_completed(&self) -> bool {
         match self {
             Self::Todo { completed, .. } => *completed,
+            Self::Note { .. } => false,
             Self::Heading { .. } => false,
         }
     }
@@ -41,6 +55,7 @@ impl ListItem {
     pub fn content(&self) -> &str {
         match self {
             Self::Todo { content, .. } => content,
+            Self::Note { content, .. } => content,
             Self::Heading { content, .. } => content,
         }
     }

@@ -87,6 +87,41 @@ fn draw_todo_list(frame: &mut Frame, area: ratatui::layout::Rect, app: &mut App)
                     let line = Line::from(Span::styled(display_content, style));
                     ListItem::new(line)
                 }
+                TodoListItem::Note {
+                    content,
+                    indent_level,
+                    ..
+                } => {
+                    let bullet = "•";
+                    let indent = "  ".repeat(*indent_level);
+                    let selection_indicator = if is_bulk_selected { "●" } else { " " };
+                    
+                    let display_content = if is_editing {
+                        // Show edit buffer with cursor
+                        let (before_cursor, after_cursor) = app.edit_buffer.split_at(app.edit_cursor_position);
+                        format!("{}{}{} {}█{}", selection_indicator, indent, bullet, before_cursor, after_cursor)
+                    } else {
+                        format!("{}{}{} {}", selection_indicator, indent, bullet, content)
+                    };
+
+                    let style = if is_editing {
+                        Style::default()
+                            .bg(Color::Blue)
+                            .fg(Color::White)
+                            .add_modifier(Modifier::BOLD)
+                    } else if is_bulk_selected {
+                        Style::default()
+                            .fg(Color::Cyan)
+                            .add_modifier(Modifier::BOLD)
+                    } else {
+                        Style::default()
+                            .fg(Color::Gray)
+                            .add_modifier(Modifier::ITALIC)
+                    };
+
+                    let line = Line::from(Span::styled(display_content, style));
+                    ListItem::new(line)
+                }
                 TodoListItem::Heading { content, level, .. } => {
                     let prefix = "#".repeat(*level);
                     let selection_indicator = if is_bulk_selected { "●" } else { " " };
@@ -190,6 +225,8 @@ fn draw_help_window(frame: &mut Frame, app: &mut App) {
         "  e                 Edit current item",
         "  a                 Add new todo below cursor",
         "  Shift+A           Add new todo at top/under heading",
+        "  n                 Add new note below cursor",
+        "  Shift+N           Add new note at top/under heading",
         "",
         "MOVEMENT:",
         "  Shift+↑↓ / J/K    Move item up/down",
