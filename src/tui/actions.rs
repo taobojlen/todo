@@ -166,6 +166,51 @@ impl ItemActions {
 
         Some(insertion_point)
     }
+
+    pub fn delete_item(items: &mut Vec<ListItem>, index: usize) -> bool {
+        if index < items.len() {
+            // Check if the item is a Todo or Note (not a Heading)
+            match &items[index] {
+                ListItem::Todo { .. } | ListItem::Note { .. } => {
+                    items.remove(index);
+                    true
+                }
+                ListItem::Heading { .. } => false, // Don't delete headings
+            }
+        } else {
+            false
+        }
+    }
+
+    pub fn delete_selected_items(items: &mut Vec<ListItem>, selected_indices: &HashSet<usize>) -> usize {
+        if selected_indices.is_empty() {
+            return 0;
+        }
+
+        // Get indices in sorted order (highest to lowest for removal)
+        let mut indices: Vec<usize> = selected_indices.iter().cloned().collect();
+        indices.sort_by(|a, b| b.cmp(a)); // Sort descending
+
+        let mut deleted_count = 0;
+        
+        // Remove items from highest index to lowest to avoid index shifting issues
+        for &index in &indices {
+            if index < items.len() {
+                // Check if the item is a Todo or Note (not a Heading)
+                match &items[index] {
+                    ListItem::Todo { .. } | ListItem::Note { .. } => {
+                        items.remove(index);
+                        deleted_count += 1;
+                    }
+                    ListItem::Heading { .. } => {
+                        // Don't delete headings
+                    }
+                }
+            }
+        }
+        
+        deleted_count
+    }
 }
 
 pub trait ActionPerformer {
@@ -175,6 +220,8 @@ pub trait ActionPerformer {
     fn perform_indent_item(&mut self, index: usize) -> bool;
     fn perform_unindent_item(&mut self, index: usize) -> bool;
     fn perform_bulk_move(&mut self, selected_indices: &HashSet<usize>, target_index: usize) -> Option<usize>;
+    fn perform_delete_item(&mut self, index: usize) -> bool;
+    fn perform_bulk_delete(&mut self, selected_indices: &HashSet<usize>) -> usize;
 }
 
 #[cfg(test)]
@@ -342,5 +389,185 @@ mod tests {
         
         // Items should remain unchanged
         assert_eq!(items.len(), 4);
+    }
+
+    #[test]
+    fn test_delete_todo_item() {
+        let mut items = create_test_items();
+        
+        // Delete first todo item
+        let result = ItemActions::delete_item(&mut items, 0);
+        assert!(result);
+        assert_eq!(items.len(), 3);
+        
+        // Check remaining items
+        if let ListItem::Todo { content, .. } = &items[0] {
+            assert_eq!(content, "Task B");
+        }
+    }
+
+    #[test]
+    fn test_delete_note_item() {
+        let mut items = vec![
+            ListItem::new_todo("Task A".to_string(), false, 0),
+            ListItem::new_note("Note B".to_string(), 0),
+            ListItem::new_todo("Task C".to_string(), false, 0),
+        ];
+        
+        // Delete note item
+        let result = ItemActions::delete_item(&mut items, 1);
+        assert!(result);
+        assert_eq!(items.len(), 2);
+        
+        // Check remaining items
+        if let ListItem::Todo { content, .. } = &items[0] {
+            assert_eq!(content, "Task A");
+        }
+        if let ListItem::Todo { content, .. } = &items[1] {
+            assert_eq!(content, "Task C");
+        }
+    }
+
+    #[test]
+    fn test_delete_heading_item_should_fail() {
+        let mut items = vec![
+            ListItem::new_heading("Heading".to_string(), 1),
+            ListItem::new_todo("Task A".to_string(), false, 0),
+        ];
+        
+        // Try to delete heading (should fail)
+        let result = ItemActions::delete_item(&mut items, 0);
+        assert!(!result);
+        assert_eq!(items.len(), 2); // No items removed
+        
+        // Check that heading is still there
+        if let ListItem::Heading { content, .. } = &items[0] {
+            assert_eq!(content, "Heading");
+        }
+    }
+
+    #[test]
+    fn test_delete_invalid_index() {
+        let mut items = create_test_items();
+        
+        // Try to delete with invalid index
+        let result = ItemActions::delete_item(&mut items, 10);
+        assert!(!result);
+        assert_eq!(items.len(), 4); // No items removed
+    }
+
+    #[test]
+    fn test_delete_selected_items() {
+        let mut items = vec![
+            ListItem::new_todo("Task A".to_string(), false, 0),    // index 0
+            ListItem::new_note("Note B".to_string(), 0),           // index 1
+            ListItem::new_todo("Task C".to_string(), false, 0),    // index 2
+            ListItem::new_heading("Heading D".to_string(), 1),     // index 3
+            ListItem::new_todo("Task E".to_string(), false, 0),    // index 4
+        ];
+        
+        let mut selected = HashSet::new();
+        selected.insert(0); // Task A
+        selected.insert(1); // Note B
+        selected.insert(2); // Task C
+        selected.insert(3); // Heading D (should not be deleted)
+        selected.insert(4); // Task E
+        
+        let deleted_count = ItemActions::delete_selected_items(&mut items, &selected);
+        
+        // Should delete 4 items (all except the heading)
+        assert_eq!(deleted_count, 4);
+        assert_eq!(items.len(), 1);
+        
+        // Check that only heading remains
+        if let ListItem::Heading { content, .. } = &items[0] {
+            assert_eq!(content, "Heading D");
+        } else {
+            panic!("Expected Heading item to remain");
+        }
+    }
+
+    #[test]
+    fn test_delete_selected_items_mixed() {
+        let mut items = vec![
+            ListItem::new_todo("Task A".to_string(), false, 0),    // index 0
+            ListItem::new_heading("Heading B".to_string(), 1),     // index 1
+            ListItem::new_note("Note C".to_string(), 0),           // index 2
+            ListItem::new_todo("Task D".to_string(), false, 0),    // index 3
+        ];
+        
+        let mut selected = HashSet::new();
+        selected.insert(0); // Task A - should be deleted
+        selected.insert(1); // Heading B - should NOT be deleted
+        selected.insert(2); // Note C - should be deleted
+        
+        let deleted_count = ItemActions::delete_selected_items(&mut items, &selected);
+        
+        // Should delete 2 items (Task A and Note C)
+        assert_eq!(deleted_count, 2);
+        assert_eq!(items.len(), 2);
+        
+        // Check remaining items (Heading B and Task D)
+        if let ListItem::Heading { content, .. } = &items[0] {
+            assert_eq!(content, "Heading B");
+        } else {
+            panic!("Expected Heading item");
+        }
+        
+        if let ListItem::Todo { content, .. } = &items[1] {
+            assert_eq!(content, "Task D");
+        } else {
+            panic!("Expected Todo item");
+        }
+    }
+
+    #[test]
+    fn test_delete_selected_items_empty_selection() {
+        let mut items = create_test_items();
+        let selected = HashSet::new();
+        
+        let deleted_count = ItemActions::delete_selected_items(&mut items, &selected);
+        
+        assert_eq!(deleted_count, 0);
+        assert_eq!(items.len(), 4); // No items removed
+    }
+
+    #[test]
+    fn test_delete_selected_items_invalid_indices() {
+        let mut items = create_test_items();
+        let mut selected = HashSet::new();
+        selected.insert(0); // Valid index
+        selected.insert(10); // Invalid index
+        selected.insert(15); // Invalid index
+        
+        let deleted_count = ItemActions::delete_selected_items(&mut items, &selected);
+        
+        // Should only delete the valid index (0)
+        assert_eq!(deleted_count, 1);
+        assert_eq!(items.len(), 3);
+        
+        // Check that first item was removed
+        if let ListItem::Todo { content, .. } = &items[0] {
+            assert_eq!(content, "Task B");
+        }
+    }
+
+    #[test]
+    fn test_delete_selected_items_only_headings() {
+        let mut items = vec![
+            ListItem::new_heading("Heading A".to_string(), 1),
+            ListItem::new_heading("Heading B".to_string(), 2),
+            ListItem::new_todo("Task C".to_string(), false, 0),
+        ];
+        
+        let mut selected = HashSet::new();
+        selected.insert(0); // Heading A
+        selected.insert(1); // Heading B
+        
+        let deleted_count = ItemActions::delete_selected_items(&mut items, &selected);
+        
+        // Should not delete any headings
+        assert_eq!(deleted_count, 0);
+        assert_eq!(items.len(), 3); // All items remain
     }
 }

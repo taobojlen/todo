@@ -50,6 +50,7 @@ impl KeyHandler {
             KeyCode::Char('?') => NormalModeAction::ToggleHelpMode,
             KeyCode::Char('u') => NormalModeAction::Undo,
             KeyCode::Char('/') => NormalModeAction::EnterSearchMode,
+            KeyCode::Char('d') => NormalModeAction::DeleteItem,
             _ => NormalModeAction::None,
         }
     }
@@ -111,6 +112,7 @@ pub enum NormalModeAction {
     ToggleHelpMode,
     Undo,
     EnterSearchMode,
+    DeleteItem,
 }
 
 #[derive(Debug, PartialEq)]
@@ -261,5 +263,11 @@ mod tests {
 
         let key_event = KeyEvent::from(KeyCode::Char('x'));
         assert_eq!(KeyHandler::handle_edit_mode_key(key_event), EditModeAction::InsertChar('x'));
+    }
+
+    #[test]
+    fn test_normal_mode_delete_key() {
+        let key_event = KeyEvent::from(KeyCode::Char('d'));
+        assert_eq!(KeyHandler::handle_normal_mode_key(key_event), NormalModeAction::DeleteItem);
     }
 }

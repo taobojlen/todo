@@ -264,6 +264,18 @@ impl KeyEventHandler for App {
                 NormalModeAction::ToggleHelpMode => self.help_mode = true,
                 NormalModeAction::Undo => self.perform_undo()?,
                 NormalModeAction::EnterSearchMode => self.search_state.enter_search_mode(),
+                NormalModeAction::DeleteItem => {
+                    if !self.navigation.selected_items.is_empty() {
+                        // Bulk delete mode
+                        let deleted_count = self.perform_bulk_delete(&self.navigation.selected_items.clone());
+                        if deleted_count > 0 {
+                            self.navigation.clear_selection();
+                        }
+                    } else {
+                        // Single item delete mode
+                        self.perform_delete_item(self.navigation.selected_index);
+                    }
+                }
                 NormalModeAction::None => {}
             }
         }
@@ -359,6 +371,63 @@ impl ActionPerformer for App {
             }
         }
         result
+    }
+
+    fn perform_delete_item(&mut self, index: usize) -> bool {
+        if index < self.todo_list.items.len() {
+            self.save_current_state();
+            let result = ItemActions::delete_item(&mut self.todo_list.items, index);
+            
+            if result {
+                // Adjust selection to stay within bounds
+                if self.navigation.selected_index >= self.todo_list.items.len() && !self.todo_list.items.is_empty() {
+                    self.navigation.selected_index = self.todo_list.items.len() - 1;
+                }
+                
+                // Clear search results when items are modified
+                self.search_state.clear_results();
+                
+                // Update scroll position
+                self.navigation.update_scroll();
+                
+                // Save changes to file
+                if let Err(e) = self.todo_list.save_to_file() {
+                    eprintln!("Failed to save file: {}", e);
+                }
+            }
+            result
+        } else {
+            false
+        }
+    }
+
+    fn perform_bulk_delete(&mut self, selected_indices: &std::collections::HashSet<usize>) -> usize {
+        if selected_indices.is_empty() {
+            return 0;
+        }
+
+        self.save_current_state();
+        let deleted_count = ItemActions::delete_selected_items(&mut self.todo_list.items, selected_indices);
+        
+        if deleted_count > 0 {
+            // Adjust selection to stay within bounds
+            if self.navigation.selected_index >= self.todo_list.items.len() && !self.todo_list.items.is_empty() {
+                self.navigation.selected_index = self.todo_list.items.len() - 1;
+            }
+            
+            // Clear search results when items are modified
+            self.search_state.clear_results();
+            
+            // Update scroll position
+            self.navigation.update_scroll();
+            
+            // Save changes to file
+            if let Err(e) = self.todo_list.save_to_file() {
+                eprintln!("Failed to save file: {}", e);
+            }
+        }
+        
+        deleted_count
     }
 }
 
