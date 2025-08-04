@@ -3,9 +3,9 @@ use crate::tui::{
     actions::{ItemActions, ActionPerformer},
     edit::{EditState, Editable},
     handlers::{KeyHandler, KeyEventHandler, NormalModeAction, HelpModeAction, SearchModeAction, EditModeAction},
-    navigation::{NavigationState, ItemCreator, Navigable},
+    navigation::{NavigationState, ItemCreator},
     persistence::Persistence,
-    search::{SearchState, Searchable},
+    search::SearchState,
     state::AppState,
     undo::{UndoManager, UndoableApp},
 };
@@ -50,9 +50,6 @@ impl App {
         self.navigation.selected_index
     }
 
-    pub fn scroll_offset(&self) -> usize {
-        self.navigation.scroll_offset
-    }
 
     pub fn selected_items(&self) -> &std::collections::HashSet<usize> {
         &self.navigation.selected_items
@@ -380,15 +377,19 @@ impl Editable for App {
     }
 
     fn cancel_edit(&mut self) -> Result<()> {
-        // If we're canceling edit on an empty todo, remove it
+        // If we're canceling edit on an empty todo or note, remove it
         if self.navigation.selected_index < self.todo_list.items.len() {
-            if let Some(ListItem::Todo { content, .. }) = self.todo_list.items.get(self.navigation.selected_index) {
-                if content.trim().is_empty() {
-                    self.todo_list.items.remove(self.navigation.selected_index);
-                    // Adjust selection to stay within bounds
-                    if self.navigation.selected_index >= self.todo_list.items.len() && !self.todo_list.items.is_empty() {
-                        self.navigation.selected_index = self.todo_list.items.len() - 1;
-                    }
+            let should_remove = match self.todo_list.items.get(self.navigation.selected_index) {
+                Some(ListItem::Todo { content, .. }) => content.trim().is_empty(),
+                Some(ListItem::Note { content, .. }) => content.trim().is_empty(),
+                _ => false,
+            };
+            
+            if should_remove {
+                self.todo_list.items.remove(self.navigation.selected_index);
+                // Adjust selection to stay within bounds
+                if self.navigation.selected_index >= self.todo_list.items.len() && !self.todo_list.items.is_empty() {
+                    self.navigation.selected_index = self.todo_list.items.len() - 1;
                 }
             }
         }
@@ -478,30 +479,3 @@ impl UndoableApp for App {
     }
 }
 
-impl Navigable for App {
-    fn get_navigation_state(&self) -> &NavigationState {
-        &self.navigation
-    }
-
-    fn get_navigation_state_mut(&mut self) -> &mut NavigationState {
-        &mut self.navigation
-    }
-
-    fn get_item_count(&self) -> usize {
-        self.todo_list.items.len()
-    }
-}
-
-impl Searchable for App {
-    fn get_search_state(&self) -> &SearchState {
-        &self.search_state
-    }
-
-    fn get_search_state_mut(&mut self) -> &mut SearchState {
-        &mut self.search_state
-    }
-
-    fn get_items(&self) -> &[ListItem] {
-        &self.todo_list.items
-    }
-}

@@ -183,10 +183,10 @@ mod tests {
 
     fn create_test_items() -> Vec<ListItem> {
         vec![
-            ListItem::new_todo("Task A".to_string(), false, 0, 0),
-            ListItem::new_todo("Task B".to_string(), false, 0, 1),
-            ListItem::new_todo("Task C".to_string(), false, 1, 2),
-            ListItem::new_todo("Task D".to_string(), false, 0, 3),
+            ListItem::new_todo("Task A".to_string(), false, 0),
+            ListItem::new_todo("Task B".to_string(), false, 0),
+            ListItem::new_todo("Task C".to_string(), false, 1),
+            ListItem::new_todo("Task D".to_string(), false, 0),
         ]
     }
 
@@ -265,8 +265,8 @@ mod tests {
     #[test]
     fn test_indent_block() {
         let mut items = vec![
-            ListItem::new_todo("Parent".to_string(), false, 0, 0),
-            ListItem::new_todo("Child".to_string(), false, 0, 1),
+            ListItem::new_todo("Parent".to_string(), false, 0),
+            ListItem::new_todo("Child".to_string(), false, 0),
         ];
         
         // Indent second item under first
@@ -285,8 +285,8 @@ mod tests {
     #[test]
     fn test_unindent_block() {
         let mut items = vec![
-            ListItem::new_todo("Parent".to_string(), false, 0, 0),
-            ListItem::new_todo("Child".to_string(), false, 1, 1),
+            ListItem::new_todo("Parent".to_string(), false, 0),
+            ListItem::new_todo("Child".to_string(), false, 1),
         ];
         
         // Unindent child

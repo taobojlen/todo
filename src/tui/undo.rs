@@ -25,9 +25,6 @@ impl UndoManager {
         self.undo_stack.pop()
     }
 
-    pub fn can_undo(&self) -> bool {
-        !self.undo_stack.is_empty()
-    }
 }
 
 pub trait UndoableApp {

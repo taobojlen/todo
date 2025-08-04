@@ -9,7 +9,7 @@ pub fn parse_todo_file(file_path: &str) -> Result<TodoList> {
     let mut todo_list = TodoList::new(file_path.to_string());
     let mut in_yaml_frontmatter = false;
 
-    for (line_number, line) in content.lines().enumerate() {
+    for (_line_number, line) in content.lines().enumerate() {
         // Skip YAML frontmatter
         if line.trim() == "---" {
             in_yaml_frontmatter = !in_yaml_frontmatter;
@@ -19,7 +19,7 @@ pub fn parse_todo_file(file_path: &str) -> Result<TodoList> {
             continue;
         }
 
-        if let Some(item) = parse_line(line, line_number) {
+        if let Some(item) = parse_line(line) {
             todo_list.add_item(item);
         }
     }
@@ -27,7 +27,7 @@ pub fn parse_todo_file(file_path: &str) -> Result<TodoList> {
     Ok(todo_list)
 }
 
-fn parse_line(line: &str, line_number: usize) -> Option<ListItem> {
+fn parse_line(line: &str) -> Option<ListItem> {
     let trimmed = line.trim();
     
     // Skip empty lines
@@ -37,7 +37,7 @@ fn parse_line(line: &str, line_number: usize) -> Option<ListItem> {
 
     // Check for headings first
     if let Some((level, content)) = extract_heading_content(trimmed) {
-        return Some(ListItem::new_heading(content, level, line_number));
+        return Some(ListItem::new_heading(content, level));
     }
 
     // Check for todo items
@@ -47,12 +47,12 @@ fn parse_line(line: &str, line_number: usize) -> Option<ListItem> {
     // Check for checkbox patterns: - [ ] or - [x] or - [X]
     if let Some(content) = extract_checkbox_content(trimmed_start) {
         let completed = is_checkbox_completed(trimmed_start);
-        return Some(ListItem::new_todo(content, completed, indent_level, line_number));
+        return Some(ListItem::new_todo(content, completed, indent_level));
     }
 
     // Check for bullet points without checkboxes: - content
     if let Some(content) = extract_bullet_content(trimmed_start) {
-        return Some(ListItem::new_note(content, indent_level, line_number));
+        return Some(ListItem::new_note(content, indent_level));
     }
 
     None
@@ -161,7 +161,7 @@ mod tests {
 
     #[test]
     fn test_parse_uncompleted_checkbox() {
-        let item = parse_line("- [ ] Buy groceries", 0);
+        let item = parse_line("- [ ] Buy groceries");
         assert!(item.is_some());
         let item = item.unwrap();
         match item {
@@ -176,7 +176,7 @@ mod tests {
 
     #[test]
     fn test_parse_completed_checkbox() {
-        let item = parse_line("- [x] Finish project", 1);
+        let item = parse_line("- [x] Finish project");
         assert!(item.is_some());
         let item = item.unwrap();
         match item {
@@ -191,7 +191,7 @@ mod tests {
 
     #[test]
     fn test_parse_indented_checkbox() {
-        let item = parse_line("  - [ ] Subtask", 2);
+        let item = parse_line("  - [ ] Subtask");
         assert!(item.is_some());
         let item = item.unwrap();
         match item {
@@ -206,7 +206,7 @@ mod tests {
 
     #[test]
     fn test_parse_heading() {
-        let item = parse_line("# Main Section", 0);
+        let item = parse_line("# Main Section");
         assert!(item.is_some());
         let item = item.unwrap();
         match item {
@@ -220,7 +220,7 @@ mod tests {
 
     #[test]
     fn test_parse_nested_heading() {
-        let item = parse_line("## Subsection", 0);
+        let item = parse_line("## Subsection");
         assert!(item.is_some());
         let item = item.unwrap();
         match item {
@@ -234,7 +234,7 @@ mod tests {
 
     #[test]
     fn test_parse_bullet_note() {
-        let item = parse_line("- This is a bullet note", 0);
+        let item = parse_line("- This is a bullet note");
         assert!(item.is_some());
         let item = item.unwrap();
         match item {
@@ -248,7 +248,7 @@ mod tests {
 
     #[test]
     fn test_parse_indented_bullet_note() {
-        let item = parse_line("  - This is an indented note", 0);
+        let item = parse_line("  - This is an indented note");
         assert!(item.is_some());
         let item = item.unwrap();
         match item {
@@ -262,19 +262,19 @@ mod tests {
 
     #[test]
     fn test_parse_non_checkbox_line() {
-        let item = parse_line("This is just a note", 0);
+        let item = parse_line("This is just a note");
         assert!(item.is_none());
     }
 
     #[test]
     fn test_parse_invalid_checkbox() {
-        let item = parse_line("- [invalid] content", 0);
+        let item = parse_line("- [invalid] content");
         assert!(item.is_none());
     }
 
     #[test]
     fn test_parse_tab_indented_checkbox() {
-        let item = parse_line("\t- [ ] Tab indented task", 0);
+        let item = parse_line("\t- [ ] Tab indented task");
         assert!(item.is_some());
         let item = item.unwrap();
         match item {
@@ -289,7 +289,7 @@ mod tests {
 
     #[test]
     fn test_parse_double_tab_indented_checkbox() {
-        let item = parse_line("\t\t- [ ] Double tab indented task", 0);
+        let item = parse_line("\t\t- [ ] Double tab indented task");
         assert!(item.is_some());
         let item = item.unwrap();
         match item {

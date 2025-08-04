@@ -4,43 +4,37 @@ pub enum ListItem {
         content: String,
         completed: bool,
         indent_level: usize,
-        line_number: usize,
     },
     Note {
         content: String,
         indent_level: usize,
-        line_number: usize,
     },
     Heading {
         content: String,
         level: usize, // 1 for #, 2 for ##, etc.
-        line_number: usize,
     },
 }
 
 impl ListItem {
-    pub fn new_todo(content: String, completed: bool, indent_level: usize, line_number: usize) -> Self {
+    pub fn new_todo(content: String, completed: bool, indent_level: usize) -> Self {
         Self::Todo {
             content,
             completed,
             indent_level,
-            line_number,
         }
     }
 
-    pub fn new_note(content: String, indent_level: usize, line_number: usize) -> Self {
+    pub fn new_note(content: String, indent_level: usize) -> Self {
         Self::Note {
             content,
             indent_level,
-            line_number,
         }
     }
 
-    pub fn new_heading(content: String, level: usize, line_number: usize) -> Self {
+    pub fn new_heading(content: String, level: usize) -> Self {
         Self::Heading {
             content,
             level,
-            line_number,
         }
     }
 
@@ -52,13 +46,6 @@ impl ListItem {
         }
     }
 
-    pub fn content(&self) -> &str {
-        match self {
-            Self::Todo { content, .. } => content,
-            Self::Note { content, .. } => content,
-            Self::Heading { content, .. } => content,
-        }
-    }
 }
 
 #[derive(Debug, Clone)]

@@ -707,7 +707,7 @@ impl App {
         self.adding_new_todo = true;
         if self.todo_list.items.is_empty() {
             // If there are no items, add the first one at level 0
-            let new_todo = ListItem::new_todo(String::new(), false, 0, 0);
+            let new_todo = ListItem::new_todo(String::new(), false, 0);
             self.todo_list.add_item(new_todo);
             self.selected_index = 0;
             self.enter_edit_mode();
@@ -723,14 +723,14 @@ impl App {
                     if block_end > self.selected_index {
                         // This todo has children, add new child after the last child
                         let child_indent = current_indent + 1;
-                        let new_todo = ListItem::new_todo(String::new(), false, child_indent, 0);
+                        let new_todo = ListItem::new_todo(String::new(), false, child_indent);
                         let insert_position = block_end + 1;
                         
                         self.todo_list.items.insert(insert_position, new_todo);
                         self.selected_index = insert_position;
                     } else {
                         // This todo has no children, add sibling with same indentation
-                        let new_todo = ListItem::new_todo(String::new(), false, *current_indent, 0);
+                        let new_todo = ListItem::new_todo(String::new(), false, *current_indent);
                         let insert_position = self.selected_index + 1;
                         
                         self.todo_list.items.insert(insert_position, new_todo);
@@ -739,7 +739,7 @@ impl App {
                 }
                 ListItem::Heading { .. } => {
                     // New todos under headings start at level 0
-                    let new_todo = ListItem::new_todo(String::new(), false, 0, 0);
+                    let new_todo = ListItem::new_todo(String::new(), false, 0);
                     let insert_position = self.selected_index + 1;
                     
                     self.todo_list.items.insert(insert_position, new_todo);
@@ -755,7 +755,7 @@ impl App {
         self.save_state();
         self.adding_new_todo = true;
         // Create new todo at level 0 (top level)
-        let new_todo = ListItem::new_todo(String::new(), false, 0, 0);
+        let new_todo = ListItem::new_todo(String::new(), false, 0);
         
         // Find the current heading context
         let insert_position = self.find_current_heading_context();
@@ -773,7 +773,7 @@ impl App {
         self.adding_new_todo = true; // Reuse the existing flag for consistency
         if self.todo_list.items.is_empty() {
             // If there are no items, add the first one at level 0
-            let new_note = ListItem::new_note(String::new(), 0, 0);
+            let new_note = ListItem::new_note(String::new(), 0);
             self.todo_list.add_item(new_note);
             self.selected_index = 0;
             self.enter_edit_mode();
@@ -789,12 +789,12 @@ impl App {
                     if block_end > self.selected_index {
                         // This item has children, add new note after the last child
                         let child_indent = current_indent + 1;
-                        let new_note = ListItem::new_note(String::new(), child_indent, 0);
+                        let new_note = ListItem::new_note(String::new(), child_indent);
                         self.todo_list.items.insert(block_end + 1, new_note);
                         self.selected_index = block_end + 1;
                     } else {
                         // No children, add sibling at the same level
-                        let new_note = ListItem::new_note(String::new(), *current_indent, 0);
+                        let new_note = ListItem::new_note(String::new(), *current_indent);
                         self.todo_list.items.insert(self.selected_index + 1, new_note);
                         self.selected_index += 1;
                     }
@@ -802,7 +802,7 @@ impl App {
                 }
                 ListItem::Heading { .. } => {
                     // For headings, add note right after heading at level 0
-                    let new_note = ListItem::new_note(String::new(), 0, 0);
+                    let new_note = ListItem::new_note(String::new(), 0);
                     self.todo_list.items.insert(self.selected_index + 1, new_note);
                     self.selected_index += 1;
                     self.enter_edit_mode();
@@ -815,7 +815,7 @@ impl App {
         self.save_state();
         self.adding_new_todo = true; // Reuse the existing flag for consistency
         // Create new note at level 0 (top level)
-        let new_note = ListItem::new_note(String::new(), 0, 0);
+        let new_note = ListItem::new_note(String::new(), 0);
         
         // Find the current heading context
         let insert_position = self.find_current_heading_context();
@@ -951,7 +951,7 @@ mod tests {
     #[test]
     fn test_toggle_todo_item() {
         let mut todo_list = TodoList::new("test".to_string());
-        todo_list.add_item(ListItem::new_todo("Test task".to_string(), false, 0, 0));
+        todo_list.add_item(ListItem::new_todo("Test task".to_string(), false, 0));
         
         let mut app = App::new(todo_list);
         
@@ -979,7 +979,7 @@ mod tests {
     #[test]
     fn test_toggle_heading_does_nothing() {
         let mut todo_list = TodoList::new("test".to_string());
-        todo_list.add_item(ListItem::new_heading("Test heading".to_string(), 1, 0));
+        todo_list.add_item(ListItem::new_heading("Test heading".to_string(), 1));
         
         let mut app = App::new(todo_list);
         
@@ -1001,8 +1001,8 @@ mod tests {
     #[test]
     fn test_move_item_down() {
         let mut todo_list = TodoList::new("test".to_string());
-        todo_list.add_item(ListItem::new_todo("First task".to_string(), false, 0, 0));
-        todo_list.add_item(ListItem::new_todo("Second task".to_string(), false, 0, 1));
+        todo_list.add_item(ListItem::new_todo("First task".to_string(), false, 0));
+        todo_list.add_item(ListItem::new_todo("Second task".to_string(), false, 0));
         
         let mut app = App::new(todo_list);
         app.selected_index = 0;
@@ -1022,8 +1022,8 @@ mod tests {
     #[test]
     fn test_move_item_up() {
         let mut todo_list = TodoList::new("test".to_string());
-        todo_list.add_item(ListItem::new_todo("First task".to_string(), false, 0, 0));
-        todo_list.add_item(ListItem::new_todo("Second task".to_string(), false, 0, 1));
+        todo_list.add_item(ListItem::new_todo("First task".to_string(), false, 0));
+        todo_list.add_item(ListItem::new_todo("Second task".to_string(), false, 0));
         
         let mut app = App::new(todo_list);
         app.selected_index = 1;
@@ -1043,8 +1043,8 @@ mod tests {
     #[test]
     fn test_indent_item() {
         let mut todo_list = TodoList::new("test".to_string());
-        todo_list.add_item(ListItem::new_todo("Parent task".to_string(), false, 0, 0));
-        todo_list.add_item(ListItem::new_todo("Child task".to_string(), false, 0, 1));
+        todo_list.add_item(ListItem::new_todo("Parent task".to_string(), false, 0));
+        todo_list.add_item(ListItem::new_todo("Child task".to_string(), false, 0));
         
         let mut app = App::new(todo_list);
         app.selected_index = 1;
@@ -1064,8 +1064,8 @@ mod tests {
     #[test]
     fn test_unindent_item() {
         let mut todo_list = TodoList::new("test".to_string());
-        todo_list.add_item(ListItem::new_todo("Parent task".to_string(), false, 0, 0));
-        todo_list.add_item(ListItem::new_todo("Child task".to_string(), false, 1, 1));
+        todo_list.add_item(ListItem::new_todo("Parent task".to_string(), false, 0));
+        todo_list.add_item(ListItem::new_todo("Child task".to_string(), false, 1));
         
         let mut app = App::new(todo_list);
         app.selected_index = 1;
@@ -1085,7 +1085,7 @@ mod tests {
     #[test]
     fn test_get_block_range_single_item() {
         let mut todo_list = TodoList::new("test".to_string());
-        todo_list.add_item(ListItem::new_todo("Single task".to_string(), false, 0, 0));
+        todo_list.add_item(ListItem::new_todo("Single task".to_string(), false, 0));
         
         let app = App::new(todo_list);
         
@@ -1097,10 +1097,10 @@ mod tests {
     #[test]
     fn test_get_block_range_with_children() {
         let mut todo_list = TodoList::new("test".to_string());
-        todo_list.add_item(ListItem::new_todo("Parent".to_string(), false, 0, 0));
-        todo_list.add_item(ListItem::new_todo("Child 1".to_string(), false, 1, 1));
-        todo_list.add_item(ListItem::new_todo("Child 2".to_string(), false, 1, 2));
-        todo_list.add_item(ListItem::new_todo("Next parent".to_string(), false, 0, 3));
+        todo_list.add_item(ListItem::new_todo("Parent".to_string(), false, 0));
+        todo_list.add_item(ListItem::new_todo("Child 1".to_string(), false, 1));
+        todo_list.add_item(ListItem::new_todo("Child 2".to_string(), false, 1));
+        todo_list.add_item(ListItem::new_todo("Next parent".to_string(), false, 0));
         
         let app = App::new(todo_list);
         
@@ -1112,9 +1112,9 @@ mod tests {
     #[test]
     fn test_move_single_item_down() {
         let mut todo_list = TodoList::new("test".to_string());
-        todo_list.add_item(ListItem::new_todo("Parent A".to_string(), false, 0, 0));
-        todo_list.add_item(ListItem::new_todo("Child A1".to_string(), false, 1, 1));
-        todo_list.add_item(ListItem::new_todo("Parent B".to_string(), false, 0, 2));
+        todo_list.add_item(ListItem::new_todo("Parent A".to_string(), false, 0));
+        todo_list.add_item(ListItem::new_todo("Child A1".to_string(), false, 1));
+        todo_list.add_item(ListItem::new_todo("Parent B".to_string(), false, 0));
         
         let mut app = App::new(todo_list);
         app.selected_index = 0; // Select "Parent A"
@@ -1143,9 +1143,9 @@ mod tests {
     #[test]
     fn test_move_single_item_up() {
         let mut todo_list = TodoList::new("test".to_string());
-        todo_list.add_item(ListItem::new_todo("Parent A".to_string(), false, 0, 0));
-        todo_list.add_item(ListItem::new_todo("Parent B".to_string(), false, 0, 1));
-        todo_list.add_item(ListItem::new_todo("Child B1".to_string(), false, 1, 2));
+        todo_list.add_item(ListItem::new_todo("Parent A".to_string(), false, 0));
+        todo_list.add_item(ListItem::new_todo("Parent B".to_string(), false, 0));
+        todo_list.add_item(ListItem::new_todo("Child B1".to_string(), false, 1));
         
         let mut app = App::new(todo_list);
         app.selected_index = 1; // Select "Parent B"
@@ -1179,10 +1179,10 @@ mod tests {
         // of the children and i move the children with it. i don't want that!"
         
         let mut todo_list = TodoList::new("test".to_string());
-        todo_list.add_item(ListItem::new_todo("Task A".to_string(), false, 0, 0));
-        todo_list.add_item(ListItem::new_todo("Task B".to_string(), false, 0, 1));
-        todo_list.add_item(ListItem::new_todo("Child B1".to_string(), false, 1, 2));
-        todo_list.add_item(ListItem::new_todo("Child B2".to_string(), false, 1, 3));
+        todo_list.add_item(ListItem::new_todo("Task A".to_string(), false, 0));
+        todo_list.add_item(ListItem::new_todo("Task B".to_string(), false, 0));
+        todo_list.add_item(ListItem::new_todo("Child B1".to_string(), false, 1));
+        todo_list.add_item(ListItem::new_todo("Child B2".to_string(), false, 1));
         
         let mut app = App::new(todo_list);
         app.selected_index = 0; // Select "Task A"
@@ -1221,10 +1221,10 @@ mod tests {
     #[test]
     fn test_indent_block() {
         let mut todo_list = TodoList::new("test".to_string());
-        todo_list.add_item(ListItem::new_todo("Parent A".to_string(), false, 0, 0));
-        todo_list.add_item(ListItem::new_todo("Parent B".to_string(), false, 0, 1));
-        todo_list.add_item(ListItem::new_todo("Child B1".to_string(), false, 1, 2));
-        todo_list.add_item(ListItem::new_todo("Child B2".to_string(), false, 1, 3));
+        todo_list.add_item(ListItem::new_todo("Parent A".to_string(), false, 0));
+        todo_list.add_item(ListItem::new_todo("Parent B".to_string(), false, 0));
+        todo_list.add_item(ListItem::new_todo("Child B1".to_string(), false, 1));
+        todo_list.add_item(ListItem::new_todo("Child B2".to_string(), false, 1));
         
         let mut app = App::new(todo_list);
         app.selected_index = 1; // Select "Parent B"
@@ -1261,10 +1261,10 @@ mod tests {
     #[test]
     fn test_unindent_block() {
         let mut todo_list = TodoList::new("test".to_string());
-        todo_list.add_item(ListItem::new_todo("Parent A".to_string(), false, 0, 0));
-        todo_list.add_item(ListItem::new_todo("Parent B".to_string(), false, 1, 1));
-        todo_list.add_item(ListItem::new_todo("Child B1".to_string(), false, 2, 2));
-        todo_list.add_item(ListItem::new_todo("Child B2".to_string(), false, 2, 3));
+        todo_list.add_item(ListItem::new_todo("Parent A".to_string(), false, 0));
+        todo_list.add_item(ListItem::new_todo("Parent B".to_string(), false, 1));
+        todo_list.add_item(ListItem::new_todo("Child B1".to_string(), false, 2));
+        todo_list.add_item(ListItem::new_todo("Child B2".to_string(), false, 2));
         
         let mut app = App::new(todo_list);
         app.selected_index = 1; // Select "Parent B"
@@ -1301,9 +1301,9 @@ mod tests {
     #[test]
     fn test_indent_block_cannot_exceed_max_level() {
         let mut todo_list = TodoList::new("test".to_string());
-        todo_list.add_item(ListItem::new_todo("Parent A".to_string(), false, 2, 0));
-        todo_list.add_item(ListItem::new_todo("Parent B".to_string(), false, 2, 1));
-        todo_list.add_item(ListItem::new_todo("Child B1".to_string(), false, 3, 2));
+        todo_list.add_item(ListItem::new_todo("Parent A".to_string(), false, 2));
+        todo_list.add_item(ListItem::new_todo("Parent B".to_string(), false, 2));
+        todo_list.add_item(ListItem::new_todo("Child B1".to_string(), false, 3));
         
         let mut app = App::new(todo_list);
         app.selected_index = 1; // Select "Parent B"
@@ -1332,8 +1332,8 @@ mod tests {
     #[test]
     fn test_unindent_block_cannot_go_below_zero() {
         let mut todo_list = TodoList::new("test".to_string());
-        todo_list.add_item(ListItem::new_todo("Parent A".to_string(), false, 0, 0));
-        todo_list.add_item(ListItem::new_todo("Child A1".to_string(), false, 1, 1));
+        todo_list.add_item(ListItem::new_todo("Parent A".to_string(), false, 0));
+        todo_list.add_item(ListItem::new_todo("Child A1".to_string(), false, 1));
         
         let mut app = App::new(todo_list);
         app.selected_index = 0; // Select "Parent A"
@@ -1362,9 +1362,9 @@ mod tests {
     #[test]
     fn test_indent_block_under_heading() {
         let mut todo_list = TodoList::new("test".to_string());
-        todo_list.add_item(ListItem::new_heading("Section A".to_string(), 1, 0));
-        todo_list.add_item(ListItem::new_todo("Task A".to_string(), false, 0, 1));
-        todo_list.add_item(ListItem::new_todo("Subtask A1".to_string(), false, 1, 2));
+        todo_list.add_item(ListItem::new_heading("Section A".to_string(), 1));
+        todo_list.add_item(ListItem::new_todo("Task A".to_string(), false, 0));
+        todo_list.add_item(ListItem::new_todo("Subtask A1".to_string(), false, 1));
         
         let mut app = App::new(todo_list);
         app.selected_index = 1; // Select "Task A"
@@ -1393,7 +1393,7 @@ mod tests {
     #[test]
     fn test_enter_edit_mode_todo() {
         let mut todo_list = TodoList::new("test".to_string());
-        todo_list.add_item(ListItem::new_todo("Test task".to_string(), false, 0, 0));
+        todo_list.add_item(ListItem::new_todo("Test task".to_string(), false, 0));
         
         let mut app = App::new(todo_list);
         app.selected_index = 0;
@@ -1413,7 +1413,7 @@ mod tests {
     #[test]
     fn test_enter_edit_mode_heading() {
         let mut todo_list = TodoList::new("test".to_string());
-        todo_list.add_item(ListItem::new_heading("Test heading".to_string(), 1, 0));
+        todo_list.add_item(ListItem::new_heading("Test heading".to_string(), 1));
         
         let mut app = App::new(todo_list);
         app.selected_index = 0;
@@ -1429,7 +1429,7 @@ mod tests {
     #[test]
     fn test_cancel_edit() {
         let mut todo_list = TodoList::new("test".to_string());
-        todo_list.add_item(ListItem::new_todo("Test task".to_string(), false, 0, 0));
+        todo_list.add_item(ListItem::new_todo("Test task".to_string(), false, 0));
         
         let mut app = App::new(todo_list);
         app.selected_index = 0;
@@ -1458,7 +1458,7 @@ mod tests {
     #[test]
     fn test_confirm_edit_todo() {
         let mut todo_list = TodoList::new("test".to_string());
-        todo_list.add_item(ListItem::new_todo("Test task".to_string(), false, 0, 0));
+        todo_list.add_item(ListItem::new_todo("Test task".to_string(), false, 0));
         
         let mut app = App::new(todo_list);
         app.selected_index = 0;
@@ -1483,7 +1483,7 @@ mod tests {
     #[test]
     fn test_confirm_edit_heading() {
         let mut todo_list = TodoList::new("test".to_string());
-        todo_list.add_item(ListItem::new_heading("Test heading".to_string(), 1, 0));
+        todo_list.add_item(ListItem::new_heading("Test heading".to_string(), 1));
         
         let mut app = App::new(todo_list);
         app.selected_index = 0;
@@ -1503,7 +1503,7 @@ mod tests {
     #[test]
     fn test_edit_text_operations() {
         let mut todo_list = TodoList::new("test".to_string());
-        todo_list.add_item(ListItem::new_todo("Hello World".to_string(), false, 0, 0));
+        todo_list.add_item(ListItem::new_todo("Hello World".to_string(), false, 0));
         
         let mut app = App::new(todo_list);
         app.selected_index = 0;
@@ -1552,7 +1552,7 @@ mod tests {
     #[test]
     fn test_edit_cursor_boundaries() {
         let mut todo_list = TodoList::new("test".to_string());
-        todo_list.add_item(ListItem::new_todo("Hi".to_string(), false, 0, 0));
+        todo_list.add_item(ListItem::new_todo("Hi".to_string(), false, 0));
         
         let mut app = App::new(todo_list);
         app.selected_index = 0;
@@ -1606,7 +1606,7 @@ mod tests {
     #[test]
     fn test_add_new_todo_after_existing_todo() {
         let mut todo_list = TodoList::new("test".to_string());
-        todo_list.add_item(ListItem::new_todo("Existing task".to_string(), false, 1, 0));
+        todo_list.add_item(ListItem::new_todo("Existing task".to_string(), false, 1));
         
         let mut app = App::new(todo_list);
         app.selected_index = 0;
@@ -1643,7 +1643,7 @@ mod tests {
     #[test]
     fn test_add_new_todo_after_heading() {
         let mut todo_list = TodoList::new("test".to_string());
-        todo_list.add_item(ListItem::new_heading("Section".to_string(), 1, 0));
+        todo_list.add_item(ListItem::new_heading("Section".to_string(), 1));
         
         let mut app = App::new(todo_list);
         app.selected_index = 0;
@@ -1680,9 +1680,9 @@ mod tests {
     #[test]
     fn test_add_new_todo_preserves_indentation() {
         let mut todo_list = TodoList::new("test".to_string());
-        todo_list.add_item(ListItem::new_todo("Parent".to_string(), false, 0, 0));
-        todo_list.add_item(ListItem::new_todo("Child".to_string(), false, 2, 1));
-        todo_list.add_item(ListItem::new_todo("Sibling".to_string(), false, 0, 2));
+        todo_list.add_item(ListItem::new_todo("Parent".to_string(), false, 0));
+        todo_list.add_item(ListItem::new_todo("Child".to_string(), false, 2));
+        todo_list.add_item(ListItem::new_todo("Sibling".to_string(), false, 0));
         
         let mut app = App::new(todo_list);
         app.selected_index = 1; // Select "Child" at level 2
@@ -1718,8 +1718,8 @@ mod tests {
     #[test]
     fn test_confirm_edit_removes_empty_todo() {
         let mut todo_list = TodoList::new("test".to_string());
-        todo_list.add_item(ListItem::new_todo("Test task".to_string(), false, 0, 0));
-        todo_list.add_item(ListItem::new_todo("Another task".to_string(), false, 0, 1));
+        todo_list.add_item(ListItem::new_todo("Test task".to_string(), false, 0));
+        todo_list.add_item(ListItem::new_todo("Another task".to_string(), false, 0));
         
         let mut app = App::new(todo_list);
         app.selected_index = 0;
@@ -1746,7 +1746,7 @@ mod tests {
     #[test]
     fn test_confirm_edit_preserves_whitespace_only_todo() {
         let mut todo_list = TodoList::new("test".to_string());
-        todo_list.add_item(ListItem::new_todo("Test task".to_string(), false, 0, 0));
+        todo_list.add_item(ListItem::new_todo("Test task".to_string(), false, 0));
         
         let mut app = App::new(todo_list);
         app.selected_index = 0;
@@ -1766,7 +1766,7 @@ mod tests {
     #[test]
     fn test_confirm_edit_preserves_empty_heading() {
         let mut todo_list = TodoList::new("test".to_string());
-        todo_list.add_item(ListItem::new_heading("Section".to_string(), 1, 0));
+        todo_list.add_item(ListItem::new_heading("Section".to_string(), 1));
         
         let mut app = App::new(todo_list);
         app.selected_index = 0;
@@ -1791,7 +1791,7 @@ mod tests {
     #[test]
     fn test_cancel_edit_removes_empty_todo() {
         let mut todo_list = TodoList::new("test".to_string());
-        todo_list.add_item(ListItem::new_todo("Test task".to_string(), false, 0, 0));
+        todo_list.add_item(ListItem::new_todo("Test task".to_string(), false, 0));
         
         let mut app = App::new(todo_list);
         app.selected_index = 0;
@@ -1812,7 +1812,7 @@ mod tests {
     #[test]
     fn test_cancel_edit_preserves_non_empty_todo() {
         let mut todo_list = TodoList::new("test".to_string());
-        todo_list.add_item(ListItem::new_todo("Test task".to_string(), false, 0, 0));
+        todo_list.add_item(ListItem::new_todo("Test task".to_string(), false, 0));
         
         let mut app = App::new(todo_list);
         app.selected_index = 0;
@@ -1834,7 +1834,7 @@ mod tests {
     #[test]
     fn test_add_new_todo_then_cancel_removes_it() {
         let mut todo_list = TodoList::new("test".to_string());
-        todo_list.add_item(ListItem::new_todo("Existing task".to_string(), false, 0, 0));
+        todo_list.add_item(ListItem::new_todo("Existing task".to_string(), false, 0));
         
         let mut app = App::new(todo_list);
         app.selected_index = 0;
@@ -1865,7 +1865,7 @@ mod tests {
     #[test]
     fn test_add_new_todo_then_confirm_empty_removes_it() {
         let mut todo_list = TodoList::new("test".to_string());
-        todo_list.add_item(ListItem::new_todo("Existing task".to_string(), false, 0, 0));
+        todo_list.add_item(ListItem::new_todo("Existing task".to_string(), false, 0));
         
         let mut app = App::new(todo_list);
         app.selected_index = 0;
@@ -1890,10 +1890,10 @@ mod tests {
     #[test]
     fn test_add_new_todo_to_parent_with_children() {
         let mut todo_list = TodoList::new("test".to_string());
-        todo_list.add_item(ListItem::new_todo("Parent".to_string(), false, 0, 0));
-        todo_list.add_item(ListItem::new_todo("Child 1".to_string(), false, 1, 1));
-        todo_list.add_item(ListItem::new_todo("Child 2".to_string(), false, 1, 2));
-        todo_list.add_item(ListItem::new_todo("Sibling".to_string(), false, 0, 3));
+        todo_list.add_item(ListItem::new_todo("Parent".to_string(), false, 0));
+        todo_list.add_item(ListItem::new_todo("Child 1".to_string(), false, 1));
+        todo_list.add_item(ListItem::new_todo("Child 2".to_string(), false, 1));
+        todo_list.add_item(ListItem::new_todo("Sibling".to_string(), false, 0));
         
         let mut app = App::new(todo_list);
         app.selected_index = 0; // Select "Parent"
@@ -1927,8 +1927,8 @@ mod tests {
     #[test]
     fn test_add_new_todo_to_parent_without_children() {
         let mut todo_list = TodoList::new("test".to_string());
-        todo_list.add_item(ListItem::new_todo("Parent 1".to_string(), false, 0, 0));
-        todo_list.add_item(ListItem::new_todo("Parent 2".to_string(), false, 0, 1));
+        todo_list.add_item(ListItem::new_todo("Parent 1".to_string(), false, 0));
+        todo_list.add_item(ListItem::new_todo("Parent 2".to_string(), false, 0));
         
         let mut app = App::new(todo_list);
         app.selected_index = 0; // Select "Parent 1" (no children)
@@ -1962,11 +1962,11 @@ mod tests {
     #[test]
     fn test_add_new_todo_to_nested_parent_with_children() {
         let mut todo_list = TodoList::new("test".to_string());
-        todo_list.add_item(ListItem::new_todo("Root".to_string(), false, 0, 0));
-        todo_list.add_item(ListItem::new_todo("Parent".to_string(), false, 1, 1));
-        todo_list.add_item(ListItem::new_todo("Child A".to_string(), false, 2, 2));
-        todo_list.add_item(ListItem::new_todo("Child B".to_string(), false, 2, 3));
-        todo_list.add_item(ListItem::new_todo("Other".to_string(), false, 0, 4));
+        todo_list.add_item(ListItem::new_todo("Root".to_string(), false, 0));
+        todo_list.add_item(ListItem::new_todo("Parent".to_string(), false, 1));
+        todo_list.add_item(ListItem::new_todo("Child A".to_string(), false, 2));
+        todo_list.add_item(ListItem::new_todo("Child B".to_string(), false, 2));
+        todo_list.add_item(ListItem::new_todo("Other".to_string(), false, 0));
         
         let mut app = App::new(todo_list);
         app.selected_index = 1; // Select "Parent" (has children at level 2)
@@ -2000,11 +2000,11 @@ mod tests {
     #[test]
     fn test_add_new_todo_to_multi_level_parent() {
         let mut todo_list = TodoList::new("test".to_string());
-        todo_list.add_item(ListItem::new_todo("Parent".to_string(), false, 0, 0));
-        todo_list.add_item(ListItem::new_todo("Child".to_string(), false, 1, 1));
-        todo_list.add_item(ListItem::new_todo("Grandchild".to_string(), false, 2, 2));
-        todo_list.add_item(ListItem::new_todo("Great-grandchild".to_string(), false, 3, 3));
-        todo_list.add_item(ListItem::new_todo("Next parent".to_string(), false, 0, 4));
+        todo_list.add_item(ListItem::new_todo("Parent".to_string(), false, 0));
+        todo_list.add_item(ListItem::new_todo("Child".to_string(), false, 1));
+        todo_list.add_item(ListItem::new_todo("Grandchild".to_string(), false, 2));
+        todo_list.add_item(ListItem::new_todo("Great-grandchild".to_string(), false, 3));
+        todo_list.add_item(ListItem::new_todo("Next parent".to_string(), false, 0));
         
         let mut app = App::new(todo_list);
         app.selected_index = 0; // Select "Parent" (has multi-level children)
@@ -2039,8 +2039,8 @@ mod tests {
     fn test_add_new_todo_preserves_existing_behavior_for_childless_items() {
         // Test that the existing tests still pass with the new logic
         let mut todo_list = TodoList::new("test".to_string());
-        todo_list.add_item(ListItem::new_todo("Task 1".to_string(), false, 2, 0));
-        todo_list.add_item(ListItem::new_todo("Task 2".to_string(), false, 1, 1));
+        todo_list.add_item(ListItem::new_todo("Task 1".to_string(), false, 2));
+        todo_list.add_item(ListItem::new_todo("Task 2".to_string(), false, 1));
         
         let mut app = App::new(todo_list);
         app.selected_index = 0; // Select "Task 1" (no children)
@@ -2087,8 +2087,8 @@ mod tests {
     #[test]
     fn test_add_new_todo_at_top_no_headings() {
         let mut todo_list = TodoList::new("test".to_string());
-        todo_list.add_item(ListItem::new_todo("First task".to_string(), false, 0, 0));
-        todo_list.add_item(ListItem::new_todo("Second task".to_string(), false, 1, 1));
+        todo_list.add_item(ListItem::new_todo("First task".to_string(), false, 0));
+        todo_list.add_item(ListItem::new_todo("Second task".to_string(), false, 1));
         
         let mut app = App::new(todo_list);
         app.selected_index = 1; // Select "Second task"
@@ -2127,11 +2127,11 @@ mod tests {
     #[test]
     fn test_add_new_todo_at_top_under_current_heading() {
         let mut todo_list = TodoList::new("test".to_string());
-        todo_list.add_item(ListItem::new_heading("Section A".to_string(), 1, 0));
-        todo_list.add_item(ListItem::new_todo("Task A1".to_string(), false, 0, 1));
-        todo_list.add_item(ListItem::new_todo("Task A2".to_string(), false, 0, 2));
-        todo_list.add_item(ListItem::new_heading("Section B".to_string(), 1, 3));
-        todo_list.add_item(ListItem::new_todo("Task B1".to_string(), false, 0, 4));
+        todo_list.add_item(ListItem::new_heading("Section A".to_string(), 1));
+        todo_list.add_item(ListItem::new_todo("Task A1".to_string(), false, 0));
+        todo_list.add_item(ListItem::new_todo("Task A2".to_string(), false, 0));
+        todo_list.add_item(ListItem::new_heading("Section B".to_string(), 1));
+        todo_list.add_item(ListItem::new_todo("Task B1".to_string(), false, 0));
         
         let mut app = App::new(todo_list);
         app.selected_index = 2; // Select "Task A2" (under Section A)
@@ -2165,9 +2165,9 @@ mod tests {
     #[test]
     fn test_add_new_todo_at_top_before_any_heading() {
         let mut todo_list = TodoList::new("test".to_string());
-        todo_list.add_item(ListItem::new_todo("Preamble task".to_string(), false, 0, 0));
-        todo_list.add_item(ListItem::new_heading("Section A".to_string(), 1, 1));
-        todo_list.add_item(ListItem::new_todo("Task A1".to_string(), false, 0, 2));
+        todo_list.add_item(ListItem::new_todo("Preamble task".to_string(), false, 0));
+        todo_list.add_item(ListItem::new_heading("Section A".to_string(), 1));
+        todo_list.add_item(ListItem::new_todo("Task A1".to_string(), false, 0));
         
         let mut app = App::new(todo_list);
         app.selected_index = 0; // Select "Preamble task" (before any heading)
@@ -2201,9 +2201,9 @@ mod tests {
     #[test]
     fn test_add_new_todo_at_top_on_heading_itself() {
         let mut todo_list = TodoList::new("test".to_string());
-        todo_list.add_item(ListItem::new_heading("Section A".to_string(), 1, 0));
-        todo_list.add_item(ListItem::new_todo("Task A1".to_string(), false, 0, 1));
-        todo_list.add_item(ListItem::new_heading("Section B".to_string(), 1, 2));
+        todo_list.add_item(ListItem::new_heading("Section A".to_string(), 1));
+        todo_list.add_item(ListItem::new_todo("Task A1".to_string(), false, 0));
+        todo_list.add_item(ListItem::new_heading("Section B".to_string(), 1));
         
         let mut app = App::new(todo_list);
         app.selected_index = 0; // Select "Section A" heading itself
@@ -2231,11 +2231,11 @@ mod tests {
     #[test]
     fn test_add_new_todo_at_top_multiple_heading_levels() {
         let mut todo_list = TodoList::new("test".to_string());
-        todo_list.add_item(ListItem::new_heading("Main Section".to_string(), 1, 0));
-        todo_list.add_item(ListItem::new_heading("Subsection A".to_string(), 2, 1));
-        todo_list.add_item(ListItem::new_todo("Task A1".to_string(), false, 0, 2));
-        todo_list.add_item(ListItem::new_heading("Subsection B".to_string(), 2, 3));
-        todo_list.add_item(ListItem::new_todo("Task B1".to_string(), false, 0, 4));
+        todo_list.add_item(ListItem::new_heading("Main Section".to_string(), 1));
+        todo_list.add_item(ListItem::new_heading("Subsection A".to_string(), 2));
+        todo_list.add_item(ListItem::new_todo("Task A1".to_string(), false, 0));
+        todo_list.add_item(ListItem::new_heading("Subsection B".to_string(), 2));
+        todo_list.add_item(ListItem::new_todo("Task B1".to_string(), false, 0));
         
         let mut app = App::new(todo_list);
         app.selected_index = 4; // Select "Task B1" (under Subsection B, which is under Main Section)
@@ -2272,9 +2272,9 @@ mod tests {
     #[test]
     fn test_toggle_item_selection() {
         let mut todo_list = TodoList::new("test".to_string());
-        todo_list.add_item(ListItem::new_todo("Task A".to_string(), false, 0, 0));
-        todo_list.add_item(ListItem::new_todo("Task B".to_string(), false, 0, 1));
-        todo_list.add_item(ListItem::new_todo("Task C".to_string(), false, 0, 2));
+        todo_list.add_item(ListItem::new_todo("Task A".to_string(), false, 0));
+        todo_list.add_item(ListItem::new_todo("Task B".to_string(), false, 0));
+        todo_list.add_item(ListItem::new_todo("Task C".to_string(), false, 0));
         
         let mut app = App::new(todo_list);
         app.selected_index = 0; // Select "Task A"
@@ -2305,11 +2305,11 @@ mod tests {
     #[test]
     fn test_bulk_move_to_different_position() {
         let mut todo_list = TodoList::new("test".to_string());
-        todo_list.add_item(ListItem::new_todo("Task A".to_string(), false, 0, 0));
-        todo_list.add_item(ListItem::new_todo("Task B".to_string(), false, 0, 1));
-        todo_list.add_item(ListItem::new_todo("Task C".to_string(), false, 0, 2));
-        todo_list.add_item(ListItem::new_todo("Task D".to_string(), false, 0, 3));
-        todo_list.add_item(ListItem::new_todo("Task E".to_string(), false, 0, 4));
+        todo_list.add_item(ListItem::new_todo("Task A".to_string(), false, 0));
+        todo_list.add_item(ListItem::new_todo("Task B".to_string(), false, 0));
+        todo_list.add_item(ListItem::new_todo("Task C".to_string(), false, 0));
+        todo_list.add_item(ListItem::new_todo("Task D".to_string(), false, 0));
+        todo_list.add_item(ListItem::new_todo("Task E".to_string(), false, 0));
         
         let mut app = App::new(todo_list);
         
@@ -2354,10 +2354,10 @@ mod tests {
     #[test]
     fn test_bulk_move_preserves_order() {
         let mut todo_list = TodoList::new("test".to_string());
-        todo_list.add_item(ListItem::new_todo("Task A".to_string(), false, 0, 0));
-        todo_list.add_item(ListItem::new_todo("Task B".to_string(), false, 0, 1));
-        todo_list.add_item(ListItem::new_todo("Task C".to_string(), false, 0, 2));
-        todo_list.add_item(ListItem::new_todo("Task D".to_string(), false, 0, 3));
+        todo_list.add_item(ListItem::new_todo("Task A".to_string(), false, 0));
+        todo_list.add_item(ListItem::new_todo("Task B".to_string(), false, 0));
+        todo_list.add_item(ListItem::new_todo("Task C".to_string(), false, 0));
+        todo_list.add_item(ListItem::new_todo("Task D".to_string(), false, 0));
         
         let mut app = App::new(todo_list);
         
@@ -2399,8 +2399,8 @@ mod tests {
     #[test]
     fn test_bulk_move_with_no_selection_does_nothing() {
         let mut todo_list = TodoList::new("test".to_string());
-        todo_list.add_item(ListItem::new_todo("Task A".to_string(), false, 0, 0));
-        todo_list.add_item(ListItem::new_todo("Task B".to_string(), false, 0, 1));
+        todo_list.add_item(ListItem::new_todo("Task A".to_string(), false, 0));
+        todo_list.add_item(ListItem::new_todo("Task B".to_string(), false, 0));
         
         let mut app = App::new(todo_list);
         app.selected_index = 1;
@@ -2425,10 +2425,10 @@ mod tests {
     #[test]
     fn test_bulk_move_with_mixed_item_types() {
         let mut todo_list = TodoList::new("test".to_string());
-        todo_list.add_item(ListItem::new_heading("Heading 1".to_string(), 1, 0));
-        todo_list.add_item(ListItem::new_todo("Task A".to_string(), false, 0, 1));
-        todo_list.add_item(ListItem::new_todo("Task B".to_string(), false, 0, 2));
-        todo_list.add_item(ListItem::new_heading("Heading 2".to_string(), 1, 3));
+        todo_list.add_item(ListItem::new_heading("Heading 1".to_string(), 1));
+        todo_list.add_item(ListItem::new_todo("Task A".to_string(), false, 0));
+        todo_list.add_item(ListItem::new_todo("Task B".to_string(), false, 0));
+        todo_list.add_item(ListItem::new_heading("Heading 2".to_string(), 1));
         
         let mut app = App::new(todo_list);
         
@@ -2494,7 +2494,7 @@ mod tests {
     #[test]
     fn test_undo_toggle_todo() {
         let mut todo_list = TodoList::new("test".to_string());
-        todo_list.add_item(ListItem::new_todo("Task A".to_string(), false, 0, 0));
+        todo_list.add_item(ListItem::new_todo("Task A".to_string(), false, 0));
         
         let mut app = App::new(todo_list);
         app.selected_index = 0;
@@ -2521,7 +2521,7 @@ mod tests {
     #[test]
     fn test_undo_edit_todo() {
         let mut todo_list = TodoList::new("test".to_string());
-        todo_list.add_item(ListItem::new_todo("Original".to_string(), false, 0, 0));
+        todo_list.add_item(ListItem::new_todo("Original".to_string(), false, 0));
         
         let mut app = App::new(todo_list);
         app.selected_index = 0;
@@ -2554,8 +2554,8 @@ mod tests {
     #[test]
     fn test_undo_move_item() {
         let mut todo_list = TodoList::new("test".to_string());
-        todo_list.add_item(ListItem::new_todo("Task A".to_string(), false, 0, 0));
-        todo_list.add_item(ListItem::new_todo("Task B".to_string(), false, 0, 1));
+        todo_list.add_item(ListItem::new_todo("Task A".to_string(), false, 0));
+        todo_list.add_item(ListItem::new_todo("Task B".to_string(), false, 0));
         
         let mut app = App::new(todo_list);
         app.selected_index = 0; // Select first item
@@ -2593,7 +2593,7 @@ mod tests {
     #[test]
     fn test_undo_add_todo() {
         let mut todo_list = TodoList::new("test".to_string());
-        todo_list.add_item(ListItem::new_todo("Existing".to_string(), false, 0, 0));
+        todo_list.add_item(ListItem::new_todo("Existing".to_string(), false, 0));
         
         let mut app = App::new(todo_list);
         app.selected_index = 0;
@@ -2627,9 +2627,9 @@ mod tests {
     #[test]
     fn test_undo_bulk_move() {
         let mut todo_list = TodoList::new("test".to_string());
-        todo_list.add_item(ListItem::new_todo("Task A".to_string(), false, 0, 0));
-        todo_list.add_item(ListItem::new_todo("Task B".to_string(), false, 0, 1));
-        todo_list.add_item(ListItem::new_todo("Task C".to_string(), false, 0, 2));
+        todo_list.add_item(ListItem::new_todo("Task A".to_string(), false, 0));
+        todo_list.add_item(ListItem::new_todo("Task B".to_string(), false, 0));
+        todo_list.add_item(ListItem::new_todo("Task C".to_string(), false, 0));
         
         let mut app = App::new(todo_list);
         
@@ -2698,8 +2698,8 @@ mod tests {
     #[test]
     fn test_escape_clears_selection() {
         let mut todo_list = TodoList::new("test".to_string());
-        todo_list.add_item(ListItem::new_todo("Task A".to_string(), false, 0, 0));
-        todo_list.add_item(ListItem::new_todo("Task B".to_string(), false, 0, 1));
+        todo_list.add_item(ListItem::new_todo("Task A".to_string(), false, 0));
+        todo_list.add_item(ListItem::new_todo("Task B".to_string(), false, 0));
         
         let mut app = App::new(todo_list);
         

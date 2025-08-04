@@ -55,17 +55,6 @@ impl NavigationState {
         self.selected_items.clear();
     }
 
-    pub fn has_selection(&self) -> bool {
-        !self.selected_items.is_empty()
-    }
-
-    pub fn selection_count(&self) -> usize {
-        self.selected_items.len()
-    }
-
-    pub fn is_item_selected(&self, index: usize) -> bool {
-        self.selected_items.contains(&index)
-    }
 }
 
 pub struct ItemCreator;
@@ -134,11 +123,11 @@ impl ItemCreator {
     }
 
     pub fn create_new_todo(content: String, completed: bool, indent_level: usize) -> ListItem {
-        ListItem::new_todo(content, completed, indent_level, 0)
+        ListItem::new_todo(content, completed, indent_level)
     }
 
     pub fn create_new_note(content: String, indent_level: usize) -> ListItem {
-        ListItem::new_note(content, indent_level, 0)
+        ListItem::new_note(content, indent_level)
     }
 
     pub fn determine_insert_position_for_new_todo(
@@ -185,11 +174,6 @@ impl ItemCreator {
     }
 }
 
-pub trait Navigable {
-    fn get_navigation_state(&self) -> &NavigationState;
-    fn get_navigation_state_mut(&mut self) -> &mut NavigationState;
-    fn get_item_count(&self) -> usize;
-}
 
 #[cfg(test)]
 mod tests {
@@ -232,21 +216,21 @@ mod tests {
         // Select item 0
         nav_state.toggle_item_selection(5);
         assert!(nav_state.selected_items.contains(&0));
-        assert_eq!(nav_state.selection_count(), 1);
+        assert_eq!(nav_state.selected_items.len(), 1);
         
         // Deselect item 0
         nav_state.toggle_item_selection(5);
         assert!(!nav_state.selected_items.contains(&0));
-        assert_eq!(nav_state.selection_count(), 0);
+        assert_eq!(nav_state.selected_items.len(), 0);
         
         // Select multiple items
         nav_state.selected_index = 1;
         nav_state.toggle_item_selection(5);
         nav_state.selected_index = 3;
         nav_state.toggle_item_selection(5);
-        assert_eq!(nav_state.selection_count(), 2);
-        assert!(nav_state.is_item_selected(1));
-        assert!(nav_state.is_item_selected(3));
+        assert_eq!(nav_state.selected_items.len(), 2);
+        assert!(nav_state.selected_items.contains(&1));
+        assert!(nav_state.selected_items.contains(&3));
     }
 
     #[test]
@@ -257,21 +241,21 @@ mod tests {
         nav_state.selected_index = 2;
         nav_state.toggle_item_selection(5);
         
-        assert_eq!(nav_state.selection_count(), 2);
+        assert_eq!(nav_state.selected_items.len(), 2);
         
         nav_state.clear_selection();
-        assert_eq!(nav_state.selection_count(), 0);
-        assert!(!nav_state.has_selection());
+        assert_eq!(nav_state.selected_items.len(), 0);
+        assert!(nav_state.selected_items.is_empty());
     }
 
     #[test]
     fn test_find_current_heading_context() {
         let items = vec![
-            ListItem::new_todo("Task 1".to_string(), false, 0, 0),
-            ListItem::new_heading("Section A".to_string(), 1, 1),
-            ListItem::new_todo("Task 2".to_string(), false, 0, 2),
-            ListItem::new_heading("Section B".to_string(), 1, 3),
-            ListItem::new_todo("Task 3".to_string(), false, 0, 4),
+            ListItem::new_todo("Task 1".to_string(), false, 0),
+            ListItem::new_heading("Section A".to_string(), 1),
+            ListItem::new_todo("Task 2".to_string(), false, 0),
+            ListItem::new_heading("Section B".to_string(), 1),
+            ListItem::new_todo("Task 3".to_string(), false, 0),
         ];
         
         // When selected on Task 3 (index 4), should find Section B (index 3) and return 4
@@ -290,10 +274,10 @@ mod tests {
     #[test]
     fn test_get_block_range() {
         let items = vec![
-            ListItem::new_todo("Parent".to_string(), false, 0, 0),
-            ListItem::new_todo("Child 1".to_string(), false, 1, 1),
-            ListItem::new_todo("Child 2".to_string(), false, 1, 2),
-            ListItem::new_todo("Next parent".to_string(), false, 0, 3),
+            ListItem::new_todo("Parent".to_string(), false, 0),
+            ListItem::new_todo("Child 1".to_string(), false, 1),
+            ListItem::new_todo("Child 2".to_string(), false, 1),
+            ListItem::new_todo("Next parent".to_string(), false, 0),
         ];
         
         let (start, end) = ItemCreator::get_block_range(&items, 0);
@@ -308,9 +292,9 @@ mod tests {
     #[test]
     fn test_determine_insert_position_for_new_todo() {
         let items = vec![
-            ListItem::new_todo("Parent".to_string(), false, 0, 0),
-            ListItem::new_todo("Child".to_string(), false, 1, 1),
-            ListItem::new_todo("Sibling".to_string(), false, 0, 2),
+            ListItem::new_todo("Parent".to_string(), false, 0),
+            ListItem::new_todo("Child".to_string(), false, 1),
+            ListItem::new_todo("Sibling".to_string(), false, 0),
         ];
         
         // Inserting after parent with children should create new child

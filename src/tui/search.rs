@@ -116,24 +116,8 @@ impl SearchState {
         self.current_match_index = None;
     }
 
-    pub fn has_matches(&self) -> bool {
-        !self.search_matches.is_empty()
-    }
-
-    pub fn match_count(&self) -> usize {
-        self.search_matches.len()
-    }
-
-    pub fn current_match_info(&self) -> Option<(usize, usize)> {
-        self.current_match_index.map(|current| (current + 1, self.search_matches.len()))
-    }
 }
 
-pub trait Searchable {
-    fn get_search_state(&self) -> &SearchState;
-    fn get_search_state_mut(&mut self) -> &mut SearchState;
-    fn get_items(&self) -> &[ListItem];
-}
 
 #[cfg(test)]
 mod tests {
@@ -142,11 +126,11 @@ mod tests {
 
     fn create_test_items() -> Vec<ListItem> {
         vec![
-            ListItem::new_todo("Buy groceries".to_string(), false, 0, 0),
-            ListItem::new_todo("Walk the dog".to_string(), false, 0, 1),
-            ListItem::new_note("Remember to buy milk".to_string(), 0, 2),
-            ListItem::new_heading("Work Tasks".to_string(), 1, 3),
-            ListItem::new_todo("Finish project".to_string(), false, 0, 4),
+            ListItem::new_todo("Buy groceries".to_string(), false, 0),
+            ListItem::new_todo("Walk the dog".to_string(), false, 0),
+            ListItem::new_note("Remember to buy milk".to_string(), 0),
+            ListItem::new_heading("Work Tasks".to_string(), 1),
+            ListItem::new_todo("Finish project".to_string(), false, 0),
         ]
     }
 
