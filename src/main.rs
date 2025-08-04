@@ -2,6 +2,8 @@ mod config;
 mod todo;
 mod tui;
 
+use tui::handlers::KeyEventHandler;
+
 use clap::{Parser, Subcommand, ValueHint, Command, CommandFactory};
 use clap_complete::{generate, Generator, Shell};
 use config::{Config, ConfigError};

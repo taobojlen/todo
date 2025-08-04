@@ -1,2 +1,10 @@
+pub mod actions;
 pub mod app;
+pub mod edit;
+pub mod handlers;
+pub mod navigation;
+pub mod persistence;
+pub mod search;
+pub mod state;
+pub mod undo;
 pub mod ui;

@@ -45,8 +45,8 @@ fn draw_todo_list(frame: &mut Frame, area: ratatui::layout::Rect, app: &mut App)
         .enumerate()
         .map(|(i, list_item)| {
             // Check if this item is being edited or selected for bulk operation
-            let is_editing = app.edit_mode && i == app.selected_index;
-            let is_bulk_selected = app.selected_items.contains(&i);
+            let is_editing = app.edit_mode() && i == app.selected_index();
+            let is_bulk_selected = app.selected_items().contains(&i);
             
             match list_item {
                 TodoListItem::Todo {
@@ -61,7 +61,7 @@ fn draw_todo_list(frame: &mut Frame, area: ratatui::layout::Rect, app: &mut App)
                     
                     let display_content = if is_editing {
                         // Show edit buffer with cursor
-                        let (before_cursor, after_cursor) = app.edit_buffer.split_at(app.edit_cursor_position);
+                        let (before_cursor, after_cursor) = app.edit_buffer().split_at(app.edit_cursor_position());
                         format!("{}{}{} {}█{}", selection_indicator, indent, checkbox, before_cursor, after_cursor)
                     } else {
                         format!("{}{}{} {}", selection_indicator, indent, checkbox, content)
@@ -98,7 +98,7 @@ fn draw_todo_list(frame: &mut Frame, area: ratatui::layout::Rect, app: &mut App)
                     
                     let display_content = if is_editing {
                         // Show edit buffer with cursor
-                        let (before_cursor, after_cursor) = app.edit_buffer.split_at(app.edit_cursor_position);
+                        let (before_cursor, after_cursor) = app.edit_buffer().split_at(app.edit_cursor_position());
                         format!("{}{}{} {}█{}", selection_indicator, indent, bullet, before_cursor, after_cursor)
                     } else {
                         format!("{}{}{} {}", selection_indicator, indent, bullet, content)
@@ -128,7 +128,7 @@ fn draw_todo_list(frame: &mut Frame, area: ratatui::layout::Rect, app: &mut App)
                     
                     let display_content = if is_editing {
                         // Show edit buffer with cursor for headings
-                        let (before_cursor, after_cursor) = app.edit_buffer.split_at(app.edit_cursor_position);
+                        let (before_cursor, after_cursor) = app.edit_buffer().split_at(app.edit_cursor_position());
                         format!("{}{} {}█{}", selection_indicator, prefix, before_cursor, after_cursor)
                     } else {
                         format!("{}{} {}", selection_indicator, prefix, content)
@@ -173,25 +173,25 @@ fn draw_todo_list(frame: &mut Frame, area: ratatui::layout::Rect, app: &mut App)
         );
 
     let mut list_state = ListState::default();
-    list_state.select(Some(app.selected_index));
+    list_state.select(Some(app.selected_index()));
 
     frame.render_stateful_widget(list, area, &mut list_state);
 }
 
 fn draw_footer(frame: &mut Frame, area: ratatui::layout::Rect, app: &App) {
-    let footer_text = if app.search_mode {
-        let match_info = if app.search_matches.is_empty() {
+    let footer_text = if app.search_mode() {
+        let match_info = if app.search_matches().is_empty() {
             "No matches".to_string()
         } else {
-            format!("{} matches", app.search_matches.len())
+            format!("{} matches", app.search_matches().len())
         };
-        format!("SEARCH: {} | {} | Enter: confirm | Esc: cancel", app.search_query, match_info)
-    } else if app.edit_mode {
+        format!("SEARCH: {} | {} | Enter: confirm | Esc: cancel", app.search_query(), match_info)
+    } else if app.edit_mode() {
         "EDIT MODE | Enter: confirm | Esc: cancel | ←→: cursor | Backspace/Delete: edit".to_string()
     } else {
-        let search_info = if !app.search_matches.is_empty() && app.current_match_index.is_some() {
-            let current = app.current_match_index.unwrap() + 1;
-            let total = app.search_matches.len();
+        let search_info = if !app.search_matches().is_empty() && app.current_match_index().is_some() {
+            let current = app.current_match_index().unwrap() + 1;
+            let total = app.search_matches().len();
             format!(" | Search: {}/{} (n/N: next/prev, Esc: clear)", current, total)
         } else {
             String::new()
@@ -201,7 +201,7 @@ fn draw_footer(frame: &mut Frame, area: ratatui::layout::Rect, app: &App) {
             "Items: {} | Completed: {} | Selected: {}{} | /: search | ↑↓/j/k: navigate | Space: select | ?: help | q: quit",
             app.total_items(),
             app.completed_items(),
-            app.selected_items.len(),
+            app.selected_items().len(),
             search_info
         )
     };
