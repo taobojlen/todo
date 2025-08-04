@@ -179,14 +179,30 @@ fn draw_todo_list(frame: &mut Frame, area: ratatui::layout::Rect, app: &mut App)
 }
 
 fn draw_footer(frame: &mut Frame, area: ratatui::layout::Rect, app: &App) {
-    let footer_text = if app.edit_mode {
+    let footer_text = if app.search_mode {
+        let match_info = if app.search_matches.is_empty() {
+            "No matches".to_string()
+        } else {
+            format!("{} matches", app.search_matches.len())
+        };
+        format!("SEARCH: {} | {} | Enter: confirm | Esc: cancel", app.search_query, match_info)
+    } else if app.edit_mode {
         "EDIT MODE | Enter: confirm | Esc: cancel | ←→: cursor | Backspace/Delete: edit".to_string()
     } else {
+        let search_info = if !app.search_matches.is_empty() && app.current_match_index.is_some() {
+            let current = app.current_match_index.unwrap() + 1;
+            let total = app.search_matches.len();
+            format!(" | Search: {}/{} (n/N: next/prev, Esc: clear)", current, total)
+        } else {
+            String::new()
+        };
+        
         format!(
-            "Items: {} | Completed: {} | Selected: {} | ↑↓/j/k: navigate | Space: select | ?: help | q: quit",
+            "Items: {} | Completed: {} | Selected: {}{} | /: search | ↑↓/j/k: navigate | Space: select | ?: help | q: quit",
             app.total_items(),
             app.completed_items(),
-            app.selected_items.len()
+            app.selected_items.len(),
+            search_info
         )
     };
 
@@ -221,12 +237,17 @@ fn draw_help_window(frame: &mut Frame, app: &mut App) {
         "  ↑↓ / j/k          Navigate up/down",
         "  Enter             Toggle todo completion",
         "",
+        "SEARCH:",
+        "  /                 Enter search mode",
+        "  n                 Go to next search match (or add note if no search)",
+        "  N                 Go to previous search match (or add note if no search)",
+        "",
         "EDITING:",
         "  e                 Edit current item",
         "  a                 Add new todo below cursor",
         "  Shift+A           Add new todo at top/under heading",
-        "  n                 Add new note below cursor",
-        "  Shift+N           Add new note at top/under heading",
+        "  n                 Add new note below cursor (if no active search)",
+        "  Shift+N           Add new note at top/under heading (if no active search)",
         "",
         "MOVEMENT:",
         "  Shift+↑↓ / J/K    Move item up/down",

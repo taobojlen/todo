@@ -24,6 +24,10 @@ pub struct App {
     pub help_mode: bool,
     pub undo_stack: Vec<AppState>,
     adding_new_todo: bool,
+    pub search_mode: bool,
+    pub search_query: String,
+    pub search_matches: Vec<usize>,
+    pub current_match_index: Option<usize>,
 }
 
 impl App {
@@ -40,6 +44,10 @@ impl App {
             help_mode: false,
             undo_stack: Vec::new(),
             adding_new_todo: false,
+            search_mode: false,
+            search_query: String::new(),
+            search_matches: Vec::new(),
+            current_match_index: None,
         }
     }
 
@@ -48,6 +56,8 @@ impl App {
             self.handle_help_mode_key(key_event)
         } else if self.edit_mode {
             self.handle_edit_mode_key(key_event)
+        } else if self.search_mode {
+            self.handle_search_mode_key(key_event)
         } else {
             self.handle_normal_mode_key(key_event)
         }
@@ -61,7 +71,14 @@ impl App {
                 self.should_quit = true;
             }
             KeyCode::Esc => {
-                self.selected_items.clear();
+                if !self.search_matches.is_empty() {
+                    // Clear search results if they exist
+                    self.search_matches.clear();
+                    self.current_match_index = None;
+                } else {
+                    // Otherwise clear bulk selection
+                    self.selected_items.clear();
+                }
             }
             KeyCode::Char('c') if key_event.modifiers.contains(KeyModifiers::CONTROL) => {
                 self.should_quit = true;
@@ -103,10 +120,18 @@ impl App {
                 self.add_new_todo_at_top();
             }
             KeyCode::Char('n') => {
-                self.add_new_note();
+                if !self.search_matches.is_empty() && self.current_match_index.is_some() {
+                    self.next_match();
+                } else {
+                    self.add_new_note();
+                }
             }
             KeyCode::Char('N') => {
-                self.add_new_note_at_top();
+                if !self.search_matches.is_empty() && self.current_match_index.is_some() {
+                    self.previous_match();
+                } else {
+                    self.add_new_note_at_top();
+                }
             }
             KeyCode::Char(' ') => {
                 self.toggle_item_selection();
@@ -120,6 +145,9 @@ impl App {
             KeyCode::Char('u') => {
                 self.undo();
             }
+            KeyCode::Char('/') => {
+                self.enter_search_mode();
+            }
             _ => {}
         }
         Ok(())
@@ -129,6 +157,25 @@ impl App {
         match key_event.code {
             KeyCode::Char('q') | KeyCode::Esc | KeyCode::Char('?') => {
                 self.help_mode = false;
+            }
+            _ => {}
+        }
+        Ok(())
+    }
+
+    fn handle_search_mode_key(&mut self, key_event: KeyEvent) -> Result<()> {
+        match key_event.code {
+            KeyCode::Esc => {
+                self.cancel_search();
+            }
+            KeyCode::Enter => {
+                self.confirm_search();
+            }
+            KeyCode::Backspace => {
+                self.search_backspace();
+            }
+            KeyCode::Char(c) => {
+                self.search_insert_char(c);
             }
             _ => {}
         }
@@ -213,6 +260,10 @@ impl App {
                 if let Some(ListItem::Todo { completed, .. }) = self.todo_list.items.get_mut(self.selected_index) {
                     *completed = !*completed;
                 }
+                
+                // Clear search results when items are modified
+                self.search_matches.clear();
+                self.current_match_index = None;
                 
                 // Save changes to file
                 if let Err(e) = self.save_to_file() {
@@ -570,6 +621,10 @@ impl App {
         self.edit_cursor_position = 0;
         self.adding_new_todo = false;
         
+        // Clear search results when items are modified
+        self.search_matches.clear();
+        self.current_match_index = None;
+        
         // Save changes to file
         if let Err(e) = self.save_to_file() {
             eprintln!("Failed to save file: {}", e);
@@ -788,6 +843,103 @@ impl App {
         
         // No heading found above current position, insert at the very top
         0
+    }
+
+    fn enter_search_mode(&mut self) {
+        self.search_mode = true;
+        self.search_query.clear();
+        self.search_matches.clear();
+        self.current_match_index = None;
+    }
+
+    fn cancel_search(&mut self) {
+        self.search_mode = false;
+        self.search_query.clear();
+        self.search_matches.clear();
+        self.current_match_index = None;
+    }
+
+    fn confirm_search(&mut self) {
+        self.search_mode = false;
+        if !self.search_matches.is_empty() {
+            self.current_match_index = Some(0);
+            self.selected_index = self.search_matches[0];
+            self.update_scroll();
+        }
+    }
+
+    fn search_backspace(&mut self) {
+        if !self.search_query.is_empty() {
+            self.search_query.pop();
+            self.update_search_matches();
+        }
+    }
+
+    fn search_insert_char(&mut self, c: char) {
+        self.search_query.push(c);
+        self.update_search_matches();
+    }
+
+    fn update_search_matches(&mut self) {
+        self.search_matches.clear();
+        self.current_match_index = None;
+        
+        if self.search_query.is_empty() {
+            return;
+        }
+
+        let query_lower = self.search_query.to_lowercase();
+        
+        for (index, item) in self.todo_list.items.iter().enumerate() {
+            let content = match item {
+                ListItem::Todo { content, .. } => content,
+                ListItem::Note { content, .. } => content,
+                ListItem::Heading { content, .. } => content,
+            };
+            
+            if content.to_lowercase().contains(&query_lower) {
+                self.search_matches.push(index);
+            }
+        }
+    }
+
+    fn next_match(&mut self) {
+        if self.search_matches.is_empty() {
+            return;
+        }
+        
+        if let Some(current_match) = self.current_match_index {
+            let next_match = (current_match + 1) % self.search_matches.len();
+            self.current_match_index = Some(next_match);
+            self.selected_index = self.search_matches[next_match];
+        } else {
+            self.current_match_index = Some(0);
+            self.selected_index = self.search_matches[0];
+        }
+        
+        self.update_scroll();
+    }
+
+    fn previous_match(&mut self) {
+        if self.search_matches.is_empty() {
+            return;
+        }
+        
+        if let Some(current_match) = self.current_match_index {
+            let prev_match = if current_match == 0 {
+                self.search_matches.len() - 1
+            } else {
+                current_match - 1
+            };
+            self.current_match_index = Some(prev_match);
+            self.selected_index = self.search_matches[prev_match];
+        } else {
+            let last_match = self.search_matches.len() - 1;
+            self.current_match_index = Some(last_match);
+            self.selected_index = self.search_matches[last_match];
+        }
+        
+        self.update_scroll();
     }
 }
 
