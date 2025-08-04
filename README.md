@@ -4,6 +4,8 @@ This is a CLI for my [favored to-do system](https://btao.org/posts/2025-03-15-pr
 
 It's really just for personal use. It might not work for you.
 
+![screenshot](screenshot.png)
+
 ## Setup
 
 ### 1. Configure TODO file location
